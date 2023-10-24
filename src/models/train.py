@@ -80,7 +80,6 @@ config['img_size'] = (config['img_size'], config['img_size'], config['img_size']
 slice_idx = list(range(0, config['img_size'][0], int(config['img_size'][0]/config['display_image_num'])))
 
 for it, (grid, image) in enumerate(data_loader):
-    print("This is iteration: " + str(it))
     # Input coordinates (x, y, z) grid and target image
     grid = grid.to(device=device)  # [bs, c, h, w, 3], [0, 1]
     image = image.to(device=device)  # [bs, c, h, w, 1], [0, 1]
