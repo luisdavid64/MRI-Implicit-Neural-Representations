@@ -1,13 +1,11 @@
 import os
 import yaml
-import math
-import numpy as np
-
 import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 
-from data import ImageDataset_3D
+from src.data.nerp_datasets import ImageDataset_3D
+
 device = torch.device("cuda" if torch.cuda.is_available() else 
                     ("mps" if torch.backends.mps.is_available() else "cpu"))
 
@@ -31,10 +29,10 @@ def prepare_sub_folder(output_directory):
 
 def get_data_loader(data, img_path, img_dim, img_slice,
                     train, batch_size, 
-                    num_workers=4, 
+                    num_workers=0, 
                     return_data_idx=False):
     
-    if data == 'test':
+    if data == 'nerp':
         dataset = ImageDataset_3D(img_path, img_dim)
 
     loader = DataLoader(dataset=dataset, 
