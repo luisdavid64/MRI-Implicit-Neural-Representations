@@ -14,9 +14,8 @@ numpy==1.22.0
 Pillow==9.5.0
 skimage==0.0
 pytorch=2.0.1
-numpy: 1.21.2
-skimage: 0.19.3
-yaml: 0.1.7
-opencv: 3.4.2
-odl: 1.0.0.dev0
+skimage==0.19.3
+yaml==0.1.7
+opencv==3.4.2
+odl==1.0.0.dev0
 astra-toolbox
