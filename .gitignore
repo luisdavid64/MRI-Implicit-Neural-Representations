@@ -4,7 +4,7 @@ dataset_knee
 dataset_brain
 outputs
 logs
-data
+./data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
