@@ -32,6 +32,6 @@ encoder:
 
 
 # Data
-data: nerp
-img_size: [40, 128, 128]     # (92, 256, 256)
+data: brain # or knee
+img_size: [40, 128, 128]     # (16, 320, 320) rss # (92, 256, 256)
 img_path: ./data/ct_data/pancs_4dct_phase1.npz  # Image path for data loading

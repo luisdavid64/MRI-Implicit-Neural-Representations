@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 
 from src.data.nerp_datasets import ImageDataset_3D
+from src.image_dataloader.dataloader import H5Dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else 
                     ("mps" if torch.backends.mps.is_available() else "cpu"))
@@ -26,14 +27,14 @@ def prepare_sub_folder(output_directory):
     return checkpoint_directory, image_directory
 
 
-
-def get_data_loader(data, img_path, img_dim, img_slice,
-                    train, batch_size, 
-                    num_workers=0, 
-                    return_data_idx=False):
+def get_data_loader(data, img_path, img_dim, img_slice, train, test, batch_size, transform=True,
+                    num_workers=0,  return_data_idx=False):
     
     if data == 'nerp':
         dataset = ImageDataset_3D(img_path, img_dim)
+
+    elif data in ['brain', 'knee']:
+        dataset = H5Dataset(data_class=data, train=train, test=test, transform=transform)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 

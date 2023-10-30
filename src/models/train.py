@@ -74,7 +74,8 @@ else:
 
 # Setup data loader
 print('Load image: {}'.format(config['img_path']))
-data_loader = get_data_loader(config['data'], config['img_path'], config['img_size'], img_slice=None, train=True, batch_size=config['batch_size'])
+data_loader = get_data_loader(config['data'], config['img_path'], config['img_size'], img_slice=None, train=True,
+                              test=False, batch_size=config['batch_size'])
 
 config['img_size'] = (config['img_size'], config['img_size'], config['img_size']) if type(config['img_size']) == int else tuple(config['img_size'])
 slice_idx = list(range(0, config['img_size'][0], int(config['img_size'][0]/config['display_image_num'])))

@@ -1,7 +1,7 @@
 .idea
 .DS_Store
-dataset_knee
-dataset_brain
+knee_multicoil_train
+brain_multicoil_train
 outputs
 logs
 ./data
