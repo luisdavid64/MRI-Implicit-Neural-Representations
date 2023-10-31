@@ -3,12 +3,24 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+import fastmri
+import h5py
+from pathlib import Path
 
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
                                             torch.linspace(0, 1, steps=h), \
                                             torch.linspace(0, 1, steps=w)])
     grid = torch.stack([grid_z, grid_y, grid_x], dim=-1)
+    return grid
+
+def create_coords(c, h, w):
+    X, Y, Z = torch.meshgrid(torch.linspace(-1, 1, w),
+                              torch.linspace(-1, 1, h),
+                              torch.linspace(-1, 1, c))
+    grid = torch.hstack((X.reshape(-1, 1),
+                            Y.reshape(-1, 1),
+                            Z.reshape(-1, 1)))
     return grid
 
 def display_tensor_stats(tensor):
@@ -52,3 +64,48 @@ class ImageDataset_3D(Dataset):
 
     def __len__(self):
         return 1
+
+class MRIDataset(Dataset):
+    def __init__(self, data_class='brain', challenge='multicoil', set="train", transform=False, sample=0, slice=0):
+        # self.batch_size = batch_size
+        self.challenge = challenge
+        self.transform = transform
+        self.data_class = data_class  # brain or knee
+        self.set = set
+        self.root = "data/{}_{}_{}/".format(self.data_class, self.challenge, self.set)
+
+        path = Path(self.root)
+        files = sorted(path.glob('*.h5'))
+
+        # Choose a sample number form the files
+        file = files[sample]
+
+        data = h5py.File(str(file.resolve()))['kspace'][()]
+        if self.transform:
+            data = self.__perform_fft(data)
+        # Choose a slice
+        data = data[slice]
+        self.shape = data.shape # (Coil Dim, Height, Width)
+        C,H,W = self.shape
+        # Flatten image and grid
+        self.image = data.reshape((C*H*W),-1)
+        self.coords = create_coords(C,H,W)
+
+    @classmethod
+    def __perform_fft(cls, k_space):
+
+        transformed = fastmri.ifft2c(k_space)
+        transformed = fastmri.complex_abs(transformed)
+        transformed = fastmri.rss(transformed, dim=1)  # coil dimension
+
+        return transformed
+
+    def __getitem__(self, idx):
+        return self.coords[idx], self.image[idx]
+
+    def __len__(self):
+        return len(self.image)  #self.X.shape[0]
+
+if __name__ == "__main__":
+    x = MRIDataset()
+    print(len(x))
