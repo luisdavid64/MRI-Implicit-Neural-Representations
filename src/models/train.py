@@ -86,16 +86,6 @@ dataset, data_loader = get_data_loader(
     slice=config["slice"],
     shuffle=False
 )
-_, val_loader = get_data_loader(
-    data=config['data'], 
-    set=config['set'], 
-    batch_size=config['batch_size'],
-    transform=config['transform'], 
-    num_workers=0, 
-    sample=config["sample"], 
-    slice=config["slice"],
-    shuffle=False 
-) # We do not shuffle this loader so we can reshape an image
 
 bs = config["batch_size"]
 image_shape = dataset.img_shape
@@ -105,7 +95,7 @@ print('Load image: {}'.format(dataset.file))
 # slice_idx = list(range(0, config['img_size'][0], int(config['img_size'][0]/config['display_image_num'])))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
-for it, (coords, gt) in enumerate(val_loader):
+for it, (coords, gt) in enumerate(data_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 train_image = fastmri.complex_abs(train_image)
@@ -144,7 +134,7 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in enumerate(val_loader):
+            for it, (coords, gt) in enumerate(data_loader):
                 # Input coordinates (x, y, z) grid and target image
                 coords = coords.to(device=device)  # [bs, c, h, w, 3], [0, 1]
                 gt = gt.to(device=device)  # [bs, c, h, w, 1], [0, 1]
@@ -155,11 +145,11 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).cpu()
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
-        test_psnr = -10 * log10(2 * (test_running_loss/len(val_loader)))
+        test_psnr = -10 * log10(2 * (test_running_loss/len(data_loader)))
         # torchvision.utils.save_image(im_recon, os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         plt.imshow(np.abs(im_recon.numpy()), cmap='gray')
         plt.savefig(os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
-        train_writer.add_scalar('test_loss', test_running_loss / len(val_loader))
+        train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         # Must transfer to .cpu() tensor firstly for saving images
         print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g}".format(epoch + 1, max_epoch, test_loss, test_psnr))
