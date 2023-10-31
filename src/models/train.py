@@ -84,7 +84,7 @@ dataset, data_loader = get_data_loader(
     num_workers=0, 
     sample=config["sample"], 
     slice=config["slice"],
-    shuffle=True
+    shuffle=False
 )
 _, val_loader = get_data_loader(
     data=config['data'], 
