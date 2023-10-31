@@ -82,3 +82,20 @@ def map_coordinates(input, coordinates):
     fx2 = f01 + d1 * (f11 - f01)
     
     return fx1 + d2 * (fx2 - fx1)
+
+def psnr(x, xhat):
+    ''' Compute Peak Signal to Noise Ratio in dB
+
+        Inputs:
+            x: Ground truth signal
+            xhat: Reconstructed signal
+
+        Outputs:
+            snrval: PSNR in dB
+    '''
+    err = x - xhat
+    denom = torch.mean(pow(err, 2))
+
+    snrval = 10*torch.log10(torch.max(x)/denom)
+
+    return snrval

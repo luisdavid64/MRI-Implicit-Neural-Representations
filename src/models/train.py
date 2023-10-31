@@ -2,7 +2,7 @@ from math import log10
 import os
 import argparse
 import shutil
-
+from torch.optim.lr_scheduler import LambdaLR
 import torch
 import torch.nn as nn
 import torchvision
@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm
 
 from networks import WIRE, Positional_Encoder, FFN, SIREN
-from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device
+from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -100,11 +100,13 @@ for it, (coords, gt) in enumerate(data_loader):
 train_image = train_image.reshape(C,H,W,S).cpu()
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
+image = torch.clone(train_image)
 # torchvision.utils.save_image(torch.abs(train_image), os.path.join(image_directory, "train.png"))
 plt.imshow(np.abs(train_image.numpy()), cmap='gray')
 plt.savefig(os.path.join(image_directory, "train.png"))
-train_losses = []
+del train_image
 
+scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
 print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
@@ -126,8 +128,8 @@ for epoch in range(max_epoch):
             train_psnr = -10 * log10(2 * (running_loss/config["log_iter"]))
             train_loss = train_loss.item()
             train_writer.add_scalar('train_loss', train_loss/config['log_iter'])
-            train_writer.add_scalar('train_psnr', train_psnr, (epoch+1)*it + 1)
-            print("[Epoch: {}/{}, Iteration: {}] Train loss: {:.4g} | Train psnr: {:.4g}".format(epoch+1, max_epoch, it, train_loss, train_psnr))
+            #train_writer.add_scalar('train_psnr', train_psnr, (epoch+1)*it + 1)
+            print("[Epoch: {}/{}, Iteration: {}] Train loss: {:.4g}".format(epoch+1, max_epoch, it, train_loss))
             running_loss = 0
     if (epoch + 1) % config['val_epoch'] == 0:
         model.eval()
@@ -145,7 +147,7 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).cpu()
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
-        test_psnr = -10 * log10(2 * (test_running_loss/len(data_loader)))
+        test_psnr = psnr(image, im_recon).item() 
         # torchvision.utils.save_image(im_recon, os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         plt.imshow(np.abs(im_recon.numpy()), cmap='gray')
         plt.savefig(os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
@@ -161,70 +163,4 @@ for epoch in range(max_epoch):
                     # 'enc': encoder.B, \
                     'opt': optim.state_dict(), \
                     }, model_name)
-
-
-
-
-
-
-    # for it, (grid, image) in enumerate(data_loader):
-    #     # Input coordinates (x, y, z) grid and target image
-    #     coords = coords.to(device=device)  # [bs, c, h, w, 3], [0, 1]
-    #     image = image.to(device=device)  # [bs, c, h, w, 1], [0, 1]
-
-    #     # Data loading 
-    #     # Change training inputs for downsampling image
-    #     test_data = (grid, image)
-    #     train_data = (grid, image)
-
-    #     save_image_3d(test_data[1], slice_idx, os.path.join(image_directory, "test.png"))
-    #     save_image_3d(train_data[1], slice_idx, os.path.join(image_directory, "train.png"))
-
-    #     # Train model
-    #     for iterations in range(max_iter):
-    #         model.train()
-    #         optim.zero_grad()
-
-    #         # Do we need to embed image?
-    #         # train_embedding = encoder.embedding(train_data[0])  # [B, C, H, W, embedding*2]
-    #         grid, gt = train_data
-    #         train_output = model(grid)  # [B, C, H, W, 1]
-    #         train_loss = 0.5 * loss_fn(train_output, gt)
-
-    #         train_loss.backward()
-    #         optim.step()
-
-    #         # Compute training psnr
-    #         if (iterations + 1) % config['log_iter'] == 0:
-    #             train_psnr = -10 * torch.log10(2 * train_loss).item()
-    #             train_loss = train_loss.item()
-
-    #             train_writer.add_scalar('train_loss', train_loss, iterations + 1)
-    #             train_writer.add_scalar('train_psnr', train_psnr, iterations + 1)
-    #             print("[Iteration: {}/{}] Train loss: {:.4g} | Train psnr: {:.4g}".format(iterations + 1, max_iter, train_loss, train_psnr))
-
-    #         # Compute testing psnr
-    #         if (iterations + 1) % config['val_iter'] == 0:
-    #             model.eval()
-    #             with torch.no_grad():
-    #                 # test_embedding = encoder.embedding(test_data[0])
-    #                 grid_test, gt_test = train_data
-    #                 test_output = model(grid_test)
-
-    #                 test_loss = 0.5 * loss_fn(test_output, gt_test)
-    #                 test_psnr = - 10 * torch.log10(2 * test_loss).item()
-    #                 test_loss = test_loss.item()
-
-    #             train_writer.add_scalar('test_loss', test_loss, iterations + 1)
-    #             train_writer.add_scalar('test_psnr', test_psnr, iterations + 1)
-    #             # Must transfer to .cpu() tensor firstly for saving images
-    #             save_image_3d(test_output, slice_idx, os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(iterations + 1, test_psnr)))
-    #             print("[Validation Iteration: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g}".format(iterations + 1, max_iter, test_loss, test_psnr))
-
-    #         if (iterations + 1) % config['image_save_iter'] == 0:
-    #             # Save final model
-    #             model_name = os.path.join(checkpoint_directory, 'model_%06d.pt' % (iterations + 1))
-    #             torch.save({'net': model.state_dict(), \
-    #                         # 'enc': encoder.B, \
-    #                         'opt': optim.state_dict(), \
-    #                         }, model_name)
+    scheduler.step()
