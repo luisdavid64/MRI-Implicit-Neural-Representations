@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 import fastmri
 import h5py
 from pathlib import Path
+from fastmri.data import transforms as T
 
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
@@ -66,7 +67,7 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', challenge='multicoil', set="train", transform=False, sample=0, slice=0):
+    def __init__(self, data_class='brain', challenge='multicoil', set="train", transform=True, sample=0, slice=0):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
@@ -81,10 +82,11 @@ class MRIDataset(Dataset):
         file = files[sample]
 
         data = h5py.File(str(file.resolve()))['kspace'][()]
+        data = data[slice]
+        data = T.to_tensor(data)
         if self.transform:
             data = self.__perform_fft(data)
         # Choose a slice
-        data = data[slice]
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W = self.shape
         # Flatten image and grid
@@ -97,7 +99,7 @@ class MRIDataset(Dataset):
 
         transformed = fastmri.ifft2c(k_space)
         transformed = fastmri.complex_abs(transformed)
-        transformed = fastmri.rss(transformed, dim=1)  # coil dimension
+        # transformed = fastmri.rss(transformed, dim=1)  # coil dimension
 
         return transformed
 
