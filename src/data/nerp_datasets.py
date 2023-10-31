@@ -7,6 +7,7 @@ import fastmri
 import h5py
 from pathlib import Path
 from fastmri.data import transforms as T
+from matplotlib import pyplot as plt
 
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
@@ -16,12 +17,12 @@ def create_grid_3d(c, h, w):
     return grid
 
 def create_coords(c, h, w):
-    X, Y, Z = torch.meshgrid(torch.linspace(-1, 1, w),
+    Z, Y, X = torch.meshgrid(torch.linspace(-1, 1, c),
                               torch.linspace(-1, 1, h),
-                              torch.linspace(-1, 1, c))
-    grid = torch.hstack((X.reshape(-1, 1),
+                              torch.linspace(-1, 1, w))
+    grid = torch.hstack((Z.reshape(-1, 1),
                             Y.reshape(-1, 1),
-                            Z.reshape(-1, 1)))
+                            X.reshape(-1, 1)))
     return grid
 
 def display_tensor_stats(tensor):
@@ -80,6 +81,7 @@ class MRIDataset(Dataset):
 
         # Choose a sample number form the files
         file = files[sample]
+        self.file_name = file
 
         data = h5py.File(str(file.resolve()))['kspace'][()]
         data = data[slice]
@@ -88,20 +90,28 @@ class MRIDataset(Dataset):
             data = self.__perform_fft(data)
         # Choose a slice
         self.shape = data.shape # (Coil Dim, Height, Width)
-        C,H,W = self.shape
+        C,H,W,S = self.shape
         # Flatten image and grid
         # What to do with complex numbers?
-        self.image = data.reshape((C*H*W),-1) # Dim: (C*H*W,1), flattened 2d image with coil dim
+        self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     @classmethod
     def __perform_fft(cls, k_space):
 
         transformed = fastmri.ifft2c(k_space)
-        transformed = fastmri.complex_abs(transformed)
+        # transformed = fastmri.complex_abs(transformed)
         # transformed = fastmri.rss(transformed, dim=1)  # coil dimension
 
         return transformed
+    
+    @property
+    def file(self):
+        return self.file_name
+
+    @property
+    def img_shape(self):
+        return self.shape
 
     def __getitem__(self, idx):
         return self.coords[idx], self.image[idx]
