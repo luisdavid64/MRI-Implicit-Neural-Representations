@@ -88,8 +88,9 @@ class MRIDataset(Dataset):
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W = self.shape
         # Flatten image and grid
-        self.image = data.reshape((C*H*W),-1)
-        self.coords = create_coords(C,H,W)
+        # What to do with complex numbers?
+        self.image = data.reshape((C*H*W),-1) # Dim: (C*H*W,1), flattened 2d image with coil dim
+        self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     @classmethod
     def __perform_fft(cls, k_space):
