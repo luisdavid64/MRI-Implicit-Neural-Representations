@@ -6,22 +6,22 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 2000                # Maximum number of training iterations
-batch_size: 600000            # Batch size (320x320)
+batch_size: 400000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00001                   # Initial learning rate
+lr: 0.0005                    # Initial learning rate
 
 
 ################## 3D CT Image ###################
 # Model options (3D CT)
-model: SIREN                  # Options for MLP models [FFN | SIREN]
+model: SIREN                # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 3     # Input size for network
-  network_output_size: 2
-  network_depth: 8            # Depth of MLP layers
+  network_output_size: 2 
+  network_depth: 4            # Depth of MLP layers
   network_width: 256          # Width of MLP layers
 
 encoder:
