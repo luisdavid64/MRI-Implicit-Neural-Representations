@@ -6,6 +6,7 @@ import torchvision.utils as vutils
 
 from src.data.nerp_datasets import ImageDataset_3D, MRIDataset
 from src.image_dataloader.dataloader import H5Dataset
+from skimage.metrics import structural_similarity
 
 device = torch.device("cuda" if torch.cuda.is_available() else 
                     ("mps" if torch.backends.mps.is_available() else "cpu"))
@@ -82,6 +83,13 @@ def map_coordinates(input, coordinates):
     fx2 = f01 + d1 * (f11 - f01)
     
     return fx1 + d2 * (fx2 - fx1)
+
+def ssim(x, xhat):
+    if torch.is_tensor(x):
+        x = x.numpy()
+    if torch.is_tensor(xhat):
+        xhat = xhat.numpy()
+    return structural_similarity(x,xhat)
 
 def psnr(x, xhat):
     ''' Compute Peak Signal to Noise Ratio in dB

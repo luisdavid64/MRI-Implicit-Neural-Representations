@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm
 
 from networks import WIRE, Positional_Encoder, FFN, SIREN
-from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr
+from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr, ssim
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -126,7 +126,7 @@ for epoch in range(max_epoch):
         running_loss += train_loss.item()
 
         if it % config['log_iter'] == config['log_iter'] - 1:
-            train_psnr = -10 * log10(2 * (running_loss/config["log_iter"]))
+            # train_psnr = -10 * log10(2 * (running_loss/config["log_iter"]))
             train_loss = train_loss.item()
             train_writer.add_scalar('train_loss', train_loss/config['log_iter'])
             #train_writer.add_scalar('train_psnr', train_psnr, (epoch+1)*it + 1)
@@ -149,14 +149,16 @@ for epoch in range(max_epoch):
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 
+        test_ssim = ssim(image, im_recon).item() 
         # torchvision.utils.save_image(im_recon, os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         plt.imshow(np.abs(im_recon.squeeze().numpy()), cmap='gray')
         plt.savefig(os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         plt.clf()
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
+        train_writer.add_scalar('test_ssim', test_ssim)
         # Must transfer to .cpu() tensor firstly for saving images
-        print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g}".format(epoch + 1, max_epoch, test_loss, test_psnr))
+        print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g} | Test ssim: {:.4g}".format(epoch + 1, max_epoch, test_loss, test_psnr, test_ssim))
 
     if (epoch + 1) % config['image_save_epoch'] == 0:
         # Save final model
