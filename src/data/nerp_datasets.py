@@ -8,9 +8,11 @@ from pathlib import Path
 from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
 
-def normalize_image(data):
-    data_min = data.min()
+def normalize_image(data, full_norm=False):
     data_max = data.max()
+    if not full_norm:
+        return data / data_max
+    data_min = data.min()
     return (data - data_min) / (data_max - data_min)
 
 def create_grid_3d(c, h, w):
@@ -97,6 +99,7 @@ class MRIDataset(Dataset):
         # Make range of image [0,1]
         data = normalize_image(data=data)
 
+        display_tensor_stats(data)
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
         # Flatten image and grid
