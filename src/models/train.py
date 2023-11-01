@@ -104,6 +104,7 @@ image = torch.clone(train_image)
 # torchvision.utils.save_image(torch.abs(train_image), os.path.join(image_directory, "train.png"))
 plt.imshow(np.abs(train_image.numpy()), cmap='gray')
 plt.savefig(os.path.join(image_directory, "train.png"))
+plt.clf()
 del train_image
 
 scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
@@ -144,13 +145,14 @@ for epoch in range(max_epoch):
                 test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
-        im_recon = im_recon.reshape(C,H,W,S).cpu()
+        im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 
         # torchvision.utils.save_image(im_recon, os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         plt.imshow(np.abs(im_recon.numpy()), cmap='gray')
         plt.savefig(os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        plt.clf()
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         # Must transfer to .cpu() tensor firstly for saving images
