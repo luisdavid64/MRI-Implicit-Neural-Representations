@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -8,6 +7,11 @@ import h5py
 from pathlib import Path
 from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
+
+def normalize_image(data):
+    data_min = data.min()
+    data_max = data.max()
+    return (data - data_min) / (data_max - data_min)
 
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
@@ -84,11 +88,15 @@ class MRIDataset(Dataset):
         self.file_name = file
 
         data = h5py.File(str(file.resolve()))['kspace'][()]
+        # Choose a slice
         data = data[slice]
         data = T.to_tensor(data)
         if self.transform:
             data = self.__perform_fft(data)
-        # Choose a slice
+
+        # Make range of image [0,1]
+        data = normalize_image(data=data)
+
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
         # Flatten image and grid
@@ -101,7 +109,8 @@ class MRIDataset(Dataset):
 
         transformed = fastmri.ifft2c(k_space)
         # transformed = fastmri.complex_abs(transformed)
-        # transformed = fastmri.rss(transformed, dim=1)  # coil dimension
+        # transformed = fastmri.rss(transformed, dim=0)  # coil dimension
+        # transformed = transformed.unsqueeze(dim=0).unsqueeze(dim=-1)
 
         return transformed
     
@@ -121,4 +130,3 @@ class MRIDataset(Dataset):
 
 if __name__ == "__main__":
     x = MRIDataset()
-    print(len(x))
