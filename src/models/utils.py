@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 
-from src.data.nerp_datasets import ImageDataset_3D
+from src.data.nerp_datasets import ImageDataset_3D, MRIDataset
+from src.image_dataloader.dataloader import H5Dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else 
                     ("mps" if torch.backends.mps.is_available() else "cpu"))
@@ -26,21 +27,18 @@ def prepare_sub_folder(output_directory):
     return checkpoint_directory, image_directory
 
 
-
-def get_data_loader(data, img_path, img_dim, img_slice,
-                    train, batch_size, 
-                    num_workers=0, 
-                    return_data_idx=False):
+def get_data_loader(data, set, batch_size, transform=True,
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True):
     
-    if data == 'nerp':
-        dataset = ImageDataset_3D(img_path, img_dim)
+    if data in ['brain', 'knee']:
+        dataset = MRIDataset(data_class=data, set=set, transform=transform, sample=sample, slice=slice)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
-                        shuffle=train, 
-                        drop_last=train, 
+                        shuffle=shuffle, 
+                        drop_last=False, 
                         num_workers=num_workers)
-    return loader
+    return dataset, loader
 
 
 def save_image_3d(tensor, slice_idx, file_name):
@@ -84,3 +82,20 @@ def map_coordinates(input, coordinates):
     fx2 = f01 + d1 * (f11 - f01)
     
     return fx1 + d2 * (fx2 - fx1)
+
+def psnr(x, xhat):
+    ''' Compute Peak Signal to Noise Ratio in dB
+
+        Inputs:
+            x: Ground truth signal
+            xhat: Reconstructed signal
+
+        Outputs:
+            snrval: PSNR in dB
+    '''
+    err = x - xhat
+    denom = torch.mean(pow(err, 2))
+
+    snrval = 10*torch.log10(torch.max(x)/denom)
+
+    return snrval

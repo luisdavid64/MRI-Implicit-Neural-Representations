@@ -1,6 +1,10 @@
+.idea
+.DS_Store
+knee_multicoil_train
+brain_multicoil_train
 outputs
 logs
-data
+./data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -155,3 +159,4 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
