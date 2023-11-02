@@ -7,10 +7,11 @@ import torch.nn as nn
 
 ############ Input Positional Encoding ############
 class Positional_Encoder():
-    def __init__(self, params):
+    def __init__(self, params, device):
+        self.device = device
         if params['embedding'] == 'gauss':
             self.B = torch.randn((params['embedding_size'], params['coordinates_size'])) * params['scale']
-            self.B = self.B.cuda()
+            self.B = self.B.to(device)
         else:
             raise NotImplementedError
 
