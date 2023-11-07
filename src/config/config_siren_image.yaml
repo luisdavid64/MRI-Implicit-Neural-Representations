@@ -37,5 +37,4 @@ data_root: data
 set: train
 slice: 0
 sample: 0
-transform: True
-# img_size: [16,320,320]
+transform: True      # Set to false for k-space

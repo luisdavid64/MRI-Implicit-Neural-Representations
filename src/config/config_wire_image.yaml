@@ -38,4 +38,4 @@ data_root: data
 set: train
 slice: 0
 sample: 0
-transform: True
+transform: True      # Set to false for k-space
