@@ -9,6 +9,7 @@ import torch.nn as nn
 class Positional_Encoder():
     def __init__(self, params, device):
         self.device = device
+        self.to_emb = params["embedding"]
         if params['embedding'] == 'gauss':
             self.B = torch.randn((params['embedding_size'], params['coordinates_size'])) * params['scale']
             self.B = self.B.to(device)
@@ -16,9 +17,12 @@ class Positional_Encoder():
             raise NotImplementedError
 
     def embedding(self, x):
-        x_embedding = (2. * np.pi * x) @ self.B.t()
-        x_embedding = torch.cat([torch.sin(x_embedding), torch.cos(x_embedding)], dim=-1)
-        return x_embedding
+        if self.to_emb:
+            x_embedding = (2. * np.pi * x) @ self.B.t()
+            x_embedding = torch.cat([torch.sin(x_embedding), torch.cos(x_embedding)], dim=-1)
+            return x_embedding
+        else:
+            return x
 
 
 
@@ -182,8 +186,8 @@ class ComplexGaborLayer(nn.Module):
 class WIRE(nn.Module):
     def __init__(self, 
                  params,
-                 first_omega_0=30, 
-                 hidden_omega_0=30., 
+                 first_omega_0=10, 
+                 hidden_omega_0=10., 
                  scale=10.0,
                 ):
         super().__init__()

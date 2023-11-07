@@ -4,8 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 
-from src.data.nerp_datasets import ImageDataset_3D, MRIDataset
-from src.image_dataloader.dataloader import H5Dataset
+from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
 
 device = torch.device("cuda" if torch.cuda.is_available() else 
@@ -28,11 +27,11 @@ def prepare_sub_folder(output_directory):
     return checkpoint_directory, image_directory
 
 
-def get_data_loader(data, set, batch_size, transform=True,
+def get_data_loader(data, data_root, set, batch_size, transform=True,
                     num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True):
     
     if data in ['brain', 'knee']:
-        dataset = MRIDataset(data_class=data, set=set, transform=transform, sample=sample, slice=slice)  #, img_dim)
+        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 

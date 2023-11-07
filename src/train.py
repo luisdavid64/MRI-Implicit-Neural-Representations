@@ -8,8 +8,8 @@ import torch.backends.cudnn as cudnn
 import fastmri
 import torch.utils.tensorboard as tensorboardX
 
-from networks import WIRE, Positional_Encoder, FFN, SIREN
-from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr, ssim
+from models.networks import WIRE, Positional_Encoder, FFN, SIREN
+from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr, ssim
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -71,6 +71,7 @@ else:
 # Setup data loader
 dataset, data_loader = get_data_loader(
     data=config['data'], 
+    data_root=config['data_root'], 
     set=config['set'], 
     batch_size=config['batch_size'],
     transform=config['transform'], 
