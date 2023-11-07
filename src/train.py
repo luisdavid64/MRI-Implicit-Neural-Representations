@@ -8,8 +8,9 @@ import torch.backends.cudnn as cudnn
 import fastmri
 import torch.utils.tensorboard as tensorboardX
 
-from networks import WIRE, Positional_Encoder, FFN, SIREN
-from utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr, ssim
+from models.networks import WIRE, Positional_Encoder, FFN, SIREN
+from data.nerp_datasets import normalize_image
+from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -19,7 +20,8 @@ parser.add_argument('--output_path', type=str, default='.', help="outputs path")
 opts = parser.parse_args()
 config = get_config(opts.config)
 max_epoch = config['max_epoch']
-
+in_image_space = config["transform"]
+device = get_device(config["model"])
 cudnn.benchmark = True
 
 # Setup output folder
@@ -71,6 +73,7 @@ else:
 # Setup data loader
 dataset, data_loader = get_data_loader(
     data=config['data'], 
+    data_root=config['data_root'], 
     set=config['set'], 
     batch_size=config['batch_size'],
     transform=config['transform'], 
@@ -89,6 +92,9 @@ train_image = torch.zeros(((C*H*W),S)).to(device)
 for it, (coords, gt) in enumerate(data_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
+if not in_image_space: # If in k-space apply inverse fourier trans
+    train_image = fastmri.ifft2c(train_image)
+    train_image = normalize_image(train_image)
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
@@ -132,6 +138,9 @@ for epoch in range(max_epoch):
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
+        if not in_image_space:
+            im_recon = fastmri.ifft2c(im_recon)
+            im_recon = normalize_image(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 

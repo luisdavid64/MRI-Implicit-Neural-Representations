@@ -74,13 +74,14 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', challenge='multicoil', set="train", transform=True, sample=0, slice=0):
+    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
         self.data_class = data_class  # brain or knee
+        self.data_root = data_root
         self.set = set
-        self.root = "data/{}_{}_{}/".format(self.data_class, self.challenge, self.set)
+        self.root = "{}/{}_{}_{}/".format(self.data_root,self.data_class, self.challenge, self.set)
 
         path = Path(self.root)
         files = sorted(path.glob('*.h5'))
