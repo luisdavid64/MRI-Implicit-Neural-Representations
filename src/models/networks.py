@@ -9,10 +9,12 @@ import torch.nn as nn
 class Positional_Encoder():
     def __init__(self, params, device):
         self.device = device
-        self.to_emb = params["embedding"]
+        self.to_emb = (params["embedding"] != "none")
         if params['embedding'] == 'gauss':
             self.B = torch.randn((params['embedding_size'], params['coordinates_size'])) * params['scale']
             self.B = self.B.to(device)
+        elif params["embedding"] == 'none':
+            pass
         else:
             raise NotImplementedError
 

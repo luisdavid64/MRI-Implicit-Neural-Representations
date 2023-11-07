@@ -6,7 +6,7 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 2000                # Maximum number of training iterations
-batch_size: 400               # Batch size (320x320)
+batch_size: 4000               # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay

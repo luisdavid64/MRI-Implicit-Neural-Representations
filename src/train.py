@@ -10,7 +10,7 @@ import torch.utils.tensorboard as tensorboardX
 
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from data.nerp_datasets import normalize_image
-from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, device, psnr, ssim
+from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -21,7 +21,7 @@ opts = parser.parse_args()
 config = get_config(opts.config)
 max_epoch = config['max_epoch']
 in_image_space = config["transform"]
-
+device = get_device(config["model"])
 cudnn.benchmark = True
 
 # Setup output folder

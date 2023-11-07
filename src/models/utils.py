@@ -7,9 +7,13 @@ import torchvision.utils as vutils
 from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
 
-device = torch.device("cuda" if torch.cuda.is_available() else 
-                    ("mps" if torch.backends.mps.is_available() else "cpu"))
+def get_device(net_name):
+    device = ("cuda" if torch.cuda.is_available() else 
+                        ("mps" if torch.backends.mps.is_available() else "cpu"))
 
+    if net_name == "WIRE" and device == "mps":
+        return torch.device("cpu")
+    return torch.device(device)
 
 def get_config(config):
     with open(config, 'r') as stream:
