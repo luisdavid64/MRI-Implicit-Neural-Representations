@@ -9,7 +9,7 @@ import torch.nn as nn
 class Positional_Encoder():
     def __init__(self, params, device):
         self.device = device
-        self.to_emb = (params["embedding"] != "none")
+        self.B = None
         if params['embedding'] == 'gauss':
             self.B = torch.randn((params['embedding_size'], params['coordinates_size'])) * params['scale']
             self.B = self.B.to(device)
@@ -19,7 +19,7 @@ class Positional_Encoder():
             raise NotImplementedError
 
     def embedding(self, x):
-        if self.to_emb:
+        if self.B is not None:
             x_embedding = (2. * np.pi * x) @ self.B.t()
             x_embedding = torch.cat([torch.sin(x_embedding), torch.cos(x_embedding)], dim=-1)
             return x_embedding
