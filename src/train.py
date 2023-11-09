@@ -93,7 +93,8 @@ C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
-for it, (coords, gt) in enumerate(data_loader):
+# Reconstruct image from val
+for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
