@@ -1,5 +1,5 @@
 # Logger options
-log_iter: 5                # How often to log the training loss 
+log_iter: 50                # How often to log the training loss 
 val_epoch: 2               # How often to validate testing and save output images during training
 image_save_epoch: 5        # How often do you want to save output images during training
 display_image_num: 8
@@ -18,11 +18,11 @@ lr: 0.005                    # Initial learning rate
 ################## 3D CT Image ###################
 # Model options (3D CT)
 
-model: WIRE                   # Options for MLP models [FFN | SIREN]
+model: WIRE2D                   # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 3     # Input size for network
   network_output_size: 2 
-  network_depth: 4            # Depth of MLP layers
+  network_depth: 2            # Depth of MLP layers
   network_width: 256          # Width of MLP layers
 
 encoder:

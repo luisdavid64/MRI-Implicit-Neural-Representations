@@ -11,7 +11,7 @@ def get_device(net_name):
     device = ("cuda" if torch.cuda.is_available() else 
                         ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-    if net_name == "WIRE" and device == "mps":
+    if "WIRE" in net_name and device == "mps":
         return torch.device("cpu")
     return torch.device(device)
 
@@ -42,7 +42,13 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                         shuffle=shuffle, 
                         drop_last=False, 
                         num_workers=num_workers)
-    return dataset, loader
+
+    val_loader = DataLoader(dataset=dataset, 
+                        batch_size=batch_size, 
+                        shuffle=False, 
+                        drop_last=False, 
+                        num_workers=num_workers)
+    return dataset, loader, val_loader
 
 
 def save_image_3d(tensor, slice_idx, file_name):

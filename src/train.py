@@ -9,6 +9,7 @@ import fastmri
 import torch.utils.tensorboard as tensorboardX
 
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
+from models.wire2d  import WIRE2D
 from data.nerp_datasets import normalize_image
 from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
 
@@ -48,6 +49,8 @@ if config['model'] == 'SIREN':
     model = SIREN(config['net'])
 elif config['model'] == 'WIRE':
     model = WIRE(config['net'])
+elif config['model'] == 'WIRE2D':
+    model = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
     model = FFN(config['net'])
 else:
@@ -71,7 +74,8 @@ else:
 
 
 # Setup data loader
-dataset, data_loader = get_data_loader(
+# The only difference of val loader is that data is not shuffled
+dataset, data_loader, val_loader = get_data_loader(
     data=config['data'], 
     data_root=config['data_root'], 
     set=config['set'], 
@@ -80,7 +84,7 @@ dataset, data_loader = get_data_loader(
     num_workers=0, 
     sample=config["sample"], 
     slice=config["slice"],
-    shuffle=False
+    shuffle=True
 )
 
 bs = config["batch_size"]
@@ -129,7 +133,7 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in enumerate(data_loader):
+            for it, (coords, gt) in enumerate(val_loader):
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
