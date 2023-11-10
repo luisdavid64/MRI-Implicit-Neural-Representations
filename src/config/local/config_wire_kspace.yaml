@@ -5,8 +5,8 @@ image_save_epoch: 20        # How often do you want to save output images during
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000               # Maximum number of training iterations
-batch_size: 400               # Batch size (320x320)
+max_epoch: 500               # Maximum number of training iterations
+batch_size: 1000               # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
