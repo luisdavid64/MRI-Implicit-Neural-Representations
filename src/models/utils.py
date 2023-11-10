@@ -100,7 +100,7 @@ def ssim(x, xhat):
         xhat = xhat.numpy()
     return structural_similarity(x,xhat)
 
-def psnr(x, xhat):
+def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
 
         Inputs:
@@ -110,9 +110,8 @@ def psnr(x, xhat):
         Outputs:
             snrval: PSNR in dB
     '''
-    err = x - xhat
-    denom = torch.mean(pow(err, 2))
+    denom = torch.mean((x - xhat) ** 2)
 
-    snrval = 10*torch.log10(torch.max(x)/denom)
+    snrval = 10*torch.log10(torch.max(x)/(denom + epsilon))
 
     return snrval
