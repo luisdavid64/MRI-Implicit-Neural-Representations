@@ -74,7 +74,7 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0):
+    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
@@ -98,7 +98,7 @@ class MRIDataset(Dataset):
             data = self.__perform_fft(data)
 
         # Make range of image [0,1]
-        data = normalize_image(data=data)
+        data = normalize_image(data=data, full_norm=full_norm)
 
         display_tensor_stats(data)
         self.shape = data.shape # (Coil Dim, Height, Width)

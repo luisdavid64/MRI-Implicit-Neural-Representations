@@ -39,3 +39,4 @@ set: train
 slice: 0
 sample: 0
 transform: True      # Set to false for k-space
+full_norm: True       # If normalize fully to [0,1]

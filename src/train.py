@@ -84,7 +84,8 @@ dataset, data_loader, val_loader = get_data_loader(
     num_workers=0, 
     sample=config["sample"], 
     slice=config["slice"],
-    shuffle=True
+    shuffle=True,
+    full_norm=config["full_norm"]
 )
 
 bs = config["batch_size"]
