@@ -9,12 +9,15 @@ from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
 
 def normalize_image(data, full_norm=False):
+    
+    C,H,W,S = data.shape
+    data_flat = data.reshape(C,-1)
     data_max = data.max()
+    norm = torch.abs(data_flat).max(dim=-1)[0].unsqueeze(dim=-1).unsqueeze(dim=-1).unsqueeze(dim=-1)
     if not full_norm:
         return data / data_max
-    data_min = data.min()
-    return (data - data_min) / (data_max - data_min)
-
+    return data/norm 
+    
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
                                             torch.linspace(0, 1, steps=h), \
@@ -33,7 +36,7 @@ def create_coords(c, h, w):
 
 def display_tensor_stats(tensor):
     shape, vmin, vmax, vmean, vstd = tensor.shape, tensor.min(), tensor.max(), torch.mean(tensor), torch.std(tensor)
-    print('shape:{} | min:{:.3f} | max:{:.3f} | mean:{:.3f} | std:{:.3f}'.format(shape, vmin, vmax, vmean, vstd))
+    print('shape:{} | min:{:.5f} | max:{:.5f} | mean:{:.5f} | std:{:.5f}'.format(shape, vmin, vmax, vmean, vstd))
 
 
 class ImageDataset_3D(Dataset):

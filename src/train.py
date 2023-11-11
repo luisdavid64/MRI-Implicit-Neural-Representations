@@ -7,9 +7,10 @@ import torchvision
 import torch.backends.cudnn as cudnn
 import fastmri
 import torch.utils.tensorboard as tensorboardX
-
+import matplotlib.pyplot as plt
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
+import numpy as np
 from data.nerp_datasets import normalize_image
 from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
 
@@ -100,11 +101,15 @@ for it, (coords, gt) in enumerate(val_loader):
 train_image = train_image.reshape(C,H,W,S).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
     train_image = fastmri.ifft2c(train_image)
-    train_image = normalize_image(train_image)
+    # train_image = normalize_image(train_image)
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
-torchvision.utils.save_image(torch.abs(train_image), os.path.join(image_directory, "train.png"))
+plt.imshow(np.abs(image.numpy()), cmap='gray')
+plt.savefig(os.path.join(image_directory, "train.png"))
+plt.clf()
+
+# torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
 del train_image
 
 scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
@@ -146,12 +151,15 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             im_recon = fastmri.ifft2c(im_recon)
-            im_recon = normalize_image(im_recon)
+            # im_recon = normalize_image(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 
         test_ssim = ssim(image, im_recon).item() 
-        torchvision.utils.save_image(im_recon.squeeze(), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        plt.imshow(np.abs(im_recon.squeeze().numpy()), cmap='gray')
+        plt.savefig(os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        plt.clf()
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         train_writer.add_scalar('test_ssim', test_ssim)
