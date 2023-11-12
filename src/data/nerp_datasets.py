@@ -74,23 +74,23 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0):
+    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0, custom_file_or_path = None):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
         self.data_class = data_class  # brain or knee
         self.data_root = data_root
         self.set = set
-        self.root = "{}/{}_{}_{}/".format(self.data_root,self.data_class, self.challenge, self.set)
 
-        path = Path(self.root)
-        files = sorted(path.glob('*.h5'))
+        if custom_file_or_path is None or custom_file_or_path == "":
+            self.root = "{}/{}_{}_{}/".format(self.data_root,self.data_class, self.challenge, self.set)
+        else:
+            self.root = custom_file_or_path
 
-        # Choose a sample number form the files
-        file = files[sample]
-        self.file_name = file
 
-        data = h5py.File(str(file.resolve()))['kspace'][()]
+        # Load single image
+        data = self.__load_files(self.root, sample)
+
         # Choose a slice
         data = data[slice]
         data = T.to_tensor(data)
@@ -117,7 +117,41 @@ class MRIDataset(Dataset):
         # transformed = transformed.unsqueeze(dim=0).unsqueeze(dim=-1)
 
         return transformed
-    
+    @classmethod
+    def __load_files(cls, path_or_file, load_only_one_path_idx=None):
+        
+        """Load's the files or single file
+        @path_or_file: Following types are supported, file name or path as string or single path name
+        @load_only_one_path_idx: If multiple files or path is provided, this can be set to load single file
+        """
+        pass
+        if path_or_file.endswith(".h5"):
+            # then we can assume that it is single file
+            file = h5py.File(path_or_file, 'r')
+            data = file['kspace'][()]
+            file.close()
+            return data
+        else:
+            # Then it is path
+            path = Path(path_or_file)
+            files_paths = sorted(path.glob('*.h5'))
+
+            # Assert check that we have loaded files
+            assert len(files_paths) > 0, f"No files in the path {path_or_file}"
+
+            if load_only_one_path_idx is not None:
+                # Choose a sample number form the files
+                file_path = files_paths[load_only_one_path_idx]
+                cls.file_name = file_path
+
+                file = h5py.File(str(file_path), 'r')
+                data = file['kspace'][()]
+                file.close()
+                return data
+            else:
+                # if we want to load all files
+                raise NotImplementedError("Multi path loading is not currently supported yet")
+
     @property
     def file(self):
         return self.file_name

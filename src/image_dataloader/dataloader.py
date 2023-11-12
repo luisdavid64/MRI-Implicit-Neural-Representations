@@ -16,29 +16,28 @@ def create_grid(h, w):
 
 
 class H5Dataset(Dataset):
-    def __init__(self, data_class='brain', challenge='multicoil', train=False, test=False, transform=False):
+    def __init__(self, data_class='brain', challenge='multicoil', train=False, test=False, transform=False, custom_file_or_path = None):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
         self.data_class = data_class  # brain or knee
         self.train = train
         self.test = test
-        if self.train:
-            self.root = "{}_{}_train/".format(self.data_class, self.challenge)
-        elif self.test:
-            self.root = "{}_{}_test/".format(self.data_class, self.challenge)
 
-        # self.root = (self.data_class, root)
-        path = Path(self.root)
-        files = sorted(path.glob('*.h5'))
+        # Assert check for train and test boolean values
+        assert train is True or test is True, "train or test should be True, they cannot be false in the same time"
 
-        # self.X = None
-        # x_none = True
+        if custom_file_or_path is None or custom_file_or_path == "":
+            if self.train:
+                self.root = "{}_{}_train/".format(self.data_class, self.challenge)
+            elif self.test:
+                self.root = "{}_{}_test/".format(self.data_class, self.challenge)
+        else:
+            self.root = custom_file_or_path
 
-        # for 1 file.
-        file = files[0]
+        
+        data = self.__load_files(self.root, load_only_one_path_idx=0)
 
-        data = h5py.File(str(file.resolve()))['kspace'][()]
         if self.transform:
             data = self.__perform_fft(data)
         self.X = data
@@ -53,7 +52,43 @@ class H5Dataset(Dataset):
         #         x_none = False
         #     else:
         #         self.X = torch.cat((self.X, data), dim=0)
+    
+    @classmethod
+    def __load_files(cls, path_or_file, load_only_one_path_idx=None):
+        
+        """Load's the files or single file
+        @path_or_file: Following types are supported, file name or path as string or single path name
+        @load_only_one_path_idx: If multiple files or path is provided, this can be set to load single file
+        """
+        # Let's check if path_or_file is path or file name
+        if not path_or_file.endswith(".h5"):
+            # then we can assume that it is path
+            root_path = Path(path_or_file)
+            files = sorted(root_path.glob('*.h5'))
 
+            
+            if load_only_one_path_idx is not None:
+                # for 1 file
+                file = files[load_only_one_path_idx]
+
+                
+                file = h5py.File(str(file.resolve()), 'r')
+                data = file['kspace'][()]
+                file.close()
+                return data
+            else:
+                # If we want to pass all 
+                raise NotImplementedError("Multi path loading is not currently supported")
+        else:
+            # which means that we have only provided file name like "XYZ.h5"
+
+            file = h5py.File(path_or_file, 'r')
+            data = file['kspace'][()]
+            file.close()
+            return data
+
+
+        
     @classmethod
     def __perform_fft(cls, k_space):
 
