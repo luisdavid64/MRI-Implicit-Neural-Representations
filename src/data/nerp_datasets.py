@@ -130,6 +130,8 @@ class MRIDataset(Dataset):
             file = h5py.File(path_or_file, 'r')
             data = file['kspace'][()]
             file.close()
+
+            cls.file_name = Path(path_or_file)
             return data
         else:
             # Then it is path
@@ -144,7 +146,7 @@ class MRIDataset(Dataset):
                 file_path = files_paths[load_only_one_path_idx]
                 cls.file_name = file_path
 
-                file = h5py.File(str(file_path), 'r')
+                file = h5py.File(file_path.resolve(), 'r')
                 data = file['kspace'][()]
                 file.close()
                 return data

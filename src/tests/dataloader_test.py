@@ -17,9 +17,16 @@ class TestAddFunction(unittest.TestCase):
     def test_MRIDataset(self):
         
         path = "data/knee_multicoil_train/file1000801.h5"
-
+        
+        # Load this file
         dataset = MRIDataset(data_class="knee", transform=False, custom_file_or_path=path)
+
+        # Get file name and compare with data
+        self.assertEqual(dataset.file.name, "file1000801.h5")
+
+        # Also try with normal operation
         dataset2 = MRIDataset(data_class="knee", transform=False)
+        
         pass
 
 if __name__ == '__main__':
