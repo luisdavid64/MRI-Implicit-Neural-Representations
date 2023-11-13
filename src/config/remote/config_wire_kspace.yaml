@@ -23,6 +23,9 @@ net:
   network_output_size: 2 
   network_depth: 4            # Depth of MLP layers
   network_width: 256          # Width of MLP layers
+  first_omega_0: 30
+  hidden_omega_0: 30
+  scale: 30
 
 encoder:
   embedding: none            #  Input embedding method
