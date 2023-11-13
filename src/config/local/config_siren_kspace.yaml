@@ -5,7 +5,7 @@ image_save_epoch: 20        # How often do you want to save output images during
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000                # Maximum number of training iterations
+max_epoch: 500                # Maximum number of training iterations
 batch_size: 30000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
@@ -38,3 +38,4 @@ set: train
 slice: 0
 sample: 0
 transform: False      # Set to false for k-space
+full_norm: False       # If normalize fully to [0,1]

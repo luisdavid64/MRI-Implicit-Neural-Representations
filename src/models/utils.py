@@ -6,13 +6,15 @@ import torchvision.utils as vutils
 
 from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
+import numpy as np
+import matplotlib.pyplot as plt
 
 def get_device(net_name):
     device = ("cuda" if torch.cuda.is_available() else 
                         ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-    if net_name == "WIRE" and device == "mps":
-        return torch.device("cpu")
+    # if "WIRE" in net_name and device == "mps":
+    #     return torch.device("cpu")
     return torch.device(device)
 
 def get_config(config):
@@ -32,17 +34,23 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True):
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False):
     
     if data in ['brain', 'knee']:
-        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice)  #, img_dim)
+        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
                         shuffle=shuffle, 
                         drop_last=False, 
                         num_workers=num_workers)
-    return dataset, loader
+
+    val_loader = DataLoader(dataset=dataset, 
+                        batch_size=batch_size, 
+                        shuffle=False, 
+                        drop_last=False, 
+                        num_workers=num_workers)
+    return dataset, loader, val_loader
 
 
 def save_image_3d(tensor, slice_idx, file_name):
@@ -92,9 +100,9 @@ def ssim(x, xhat):
         x = x.numpy()
     if torch.is_tensor(xhat):
         xhat = xhat.numpy()
-    return structural_similarity(x,xhat)
+    return structural_similarity(x,xhat, data_range=xhat.max()-xhat.min())
 
-def psnr(x, xhat):
+def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
 
         Inputs:
@@ -104,9 +112,13 @@ def psnr(x, xhat):
         Outputs:
             snrval: PSNR in dB
     '''
-    err = x - xhat
-    denom = torch.mean(pow(err, 2))
+    denom = torch.mean((x - xhat) ** 2)
 
-    snrval = 10*torch.log10(torch.max(x)/denom)
+    snrval = 10*torch.log10(torch.max(x)/(denom + epsilon))
 
     return snrval
+
+# Save MRI image with matplotlib
+def save_im(image, image_directory, image_name):
+    plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
+    plt.clf()

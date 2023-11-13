@@ -5,14 +5,14 @@ image_save_epoch: 20          # How often do you want to save output images duri
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000               # Maximum number of training iterations
+max_epoch: 500               # Maximum number of training iterations
 batch_size: 400000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.005                     # Initial learning rate
+lr: 0.0005                     # Initial learning rate
 
 
 ################## 3D CT Image ###################
@@ -38,3 +38,4 @@ set: train
 slice: 0
 sample: 0
 transform: True      # Set to false for k-space
+full_norm: True       # If normalize fully to [0,1]
