@@ -192,11 +192,11 @@ class WIRE(nn.Module):
         super().__init__()
         
         # All results in the paper were with the default complex 'gabor' nonlinearity
-        self.nonlin = RealGaborLayer
+        self.nonlin = ComplexGaborLayer
         
         # Since complex numbers are two real numbers, reduce the number of 
         # hidden parameters by 2
-        dtype = torch.float
+        dtype = torch.cfloat
         self.complex = True
         self.wavelet = 'gabor'    
         hidden_layers = params['network_depth']

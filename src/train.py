@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 import numpy as np
-from data.nerp_datasets import normalize_image
 from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
 
 parser = argparse.ArgumentParser()
@@ -101,7 +100,6 @@ for it, (coords, gt) in enumerate(val_loader):
 train_image = train_image.reshape(C,H,W,S).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
     train_image = fastmri.ifft2c(train_image)
-    # train_image = normalize_image(train_image)
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
@@ -151,7 +149,6 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             im_recon = fastmri.ifft2c(im_recon)
-            # im_recon = normalize_image(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 

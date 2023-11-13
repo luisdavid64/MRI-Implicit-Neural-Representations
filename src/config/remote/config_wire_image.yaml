@@ -1,6 +1,6 @@
 # Logger options
 log_iter: 50                # How often to log the training loss 
-val_epoch: 1               # How often to validate testing and save output images during training
+val_epoch: 3               # How often to validate testing and save output images during training
 image_save_epoch: 5        # How often do you want to save output images during training
 display_image_num: 8
 
@@ -12,7 +12,7 @@ optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.000000001             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.005                    # Initial learning rate
+lr: 0.0005                    # Initial learning rate
  # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
 
 ################## 3D CT Image ###################
@@ -33,8 +33,7 @@ encoder:
   scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3
-
-
+  
 # Data
 data: brain # or knee
 data_root: /local_ssd/practical_wise24/implicit_neural_representations
