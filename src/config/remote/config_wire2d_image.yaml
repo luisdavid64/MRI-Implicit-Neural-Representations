@@ -26,7 +26,7 @@ net:
   network_width: 256          # Width of MLP layers
   first_omega_0: 30
   hidden_omega_0: 30
-  scale: 30
+  scale: 15
 
 encoder:
   embedding: none            #  Input embedding method
