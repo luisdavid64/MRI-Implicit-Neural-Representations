@@ -188,9 +188,6 @@ class ComplexGaborLayer(nn.Module):
 class WIRE(nn.Module):
     def __init__(self, 
                  params,
-                 first_omega_0=10, 
-                 hidden_omega_0=10, 
-                 scale=10.0,
                 ):
         super().__init__()
         
@@ -206,6 +203,9 @@ class WIRE(nn.Module):
         hidden_features = params['network_width']
         in_features = params['network_input_size']
         out_features = params['network_output_size']
+        first_omega_0 = params["first_omega_0"]
+        hidden_omega_0 = params["hidden_omega_0"]
+        scale = params["scale"]
 
         hidden_features = int(hidden_features/np.sqrt(2))
         
