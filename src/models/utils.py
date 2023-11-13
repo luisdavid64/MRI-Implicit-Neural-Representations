@@ -118,9 +118,7 @@ def psnr(x, xhat, epsilon=1e-10):
 
     return snrval
 
+# Save MRI image with matplotlib
 def save_im(image, image_directory, image_name):
-    plt.imshow(np.abs(image.numpy()), cmap='gray')
-    plt.savefig(os.path.join(image_directory, image_name), bbox_inches='tight')
-    plt.axis('off')
-    plt.tight_layout()
+    plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
     plt.clf()
