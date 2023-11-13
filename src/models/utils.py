@@ -6,6 +6,8 @@ import torchvision.utils as vutils
 
 from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
+import numpy as np
+import matplotlib.pyplot as plt
 
 def get_device(net_name):
     device = ("cuda" if torch.cuda.is_available() else 
@@ -115,3 +117,10 @@ def psnr(x, xhat, epsilon=1e-10):
     snrval = 10*torch.log10(torch.max(x)/(denom + epsilon))
 
     return snrval
+
+def save_im(image, image_directory, image_name):
+    plt.imshow(np.abs(image.numpy()), cmap='gray')
+    plt.savefig(os.path.join(image_directory, image_name), bbox_inches='tight')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.clf()
