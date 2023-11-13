@@ -17,7 +17,7 @@ class ComplexGaborLayer2D(nn.Module):
     '''
     
     def __init__(self, in_features, out_features, bias=True,
-                 is_first=False, omega0=10.0, sigma0=10.0,
+                 is_first=False, omega0=20, sigma0=5,
                  trainable=False):
         super().__init__()
         self.omega_0 = omega0
@@ -64,7 +64,7 @@ class WIRE2D(nn.Module):
                  params,
                  first_omega_0=20, 
                  hidden_omega_0=20, 
-                 scale=10.0
+                 scale=20
                 ):
         super().__init__()
         

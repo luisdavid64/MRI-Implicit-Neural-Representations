@@ -8,15 +8,51 @@ from pathlib import Path
 from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
 
-def normalize_image(data, full_norm=False):
+def complex_center_crop(data, shape):
+    """
+    Apply a center crop to the input image or batch of complex images.
+
+    Args:
+        data (torch.Tensor): The complex input tensor to be center cropped. It should
+            have at least 3 dimensions and the cropping is applied along dimensions
+            -3 and -2 and the last dimensions should have a size of 2.
+        shape (int, int): The output shape. The shape should be smaller than the
+            corresponding dimensions of data.
+
+    Returns:
+        torch.Tensor: The center cropped image
+    """
+    assert 0 < shape[0] <= data.shape[-3]
+    assert 0 < shape[1] <= data.shape[-2]
+    w_from = (data.shape[-3] - shape[0]) // 2
+    h_from = (data.shape[-2] - shape[1]) // 2
+    w_to = w_from + shape[0]
+    h_to = h_from + shape[1]
+    return data[..., w_from:w_to, h_from:h_to, :]
+
+def normalize_image_2(data, full_norm=False):
     
-    C,H,W,S = data.shape
+    C,_,_,_ = data.shape
     data_flat = data.reshape(C,-1)
-    data_max = data.max()
     norm = torch.abs(data_flat).max(dim=-1)[0].unsqueeze(dim=-1).unsqueeze(dim=-1).unsqueeze(dim=-1)
-    if not full_norm:
-        return data / data_max
     return data/norm 
+
+def normalize_image_1(data, full_norm=False):
+    
+    mean = data.mean()
+    std = data.std()
+    return (data - mean) / (std)
+
+def normalize_image(data, full_norm=True):
+    re = data[:,:,:,0]
+    im = data[:,:,:,1]
+    re_min = re.min()
+    im_min = im.min()
+    re = 2 * (re - re_min)/(re.max() - re_min) -1
+    im = 2 * (im - im_min)/(im.max() - im_min) -1
+    data = torch.stack((re,im),dim=-1)
+    return data
+
     
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
@@ -88,6 +124,17 @@ class MRIDataset(Dataset):
 
         path = Path(self.root)
         files = sorted(path.glob('*.h5'))
+        # Malformed scans
+        fnames_filter = ['file_brain_AXT2_200_2000446.h5',
+                    'file_brain_AXT2_201_2010556.h5',
+                    'file_brain_AXT2_208_2080135.h5',
+                    'file_brain_AXT2_207_2070275.h5',
+                    'file_brain_AXT2_208_2080163.h5',
+                    'file_brain_AXT2_207_2070549.h5',
+                    'file_brain_AXT2_207_2070254.h5',
+                    'file_brain_AXT2_202_2020292.h5',
+                    ]
+        files = [file for file in files if (file not in fnames_filter)]
 
         # Choose a sample number form the files
         file = files[sample]
@@ -115,10 +162,6 @@ class MRIDataset(Dataset):
     def __perform_fft(cls, k_space):
 
         transformed = fastmri.ifft2c(k_space)
-        # transformed = fastmri.complex_abs(transformed)
-        # transformed = fastmri.rss(transformed, dim=0)  # coil dimension
-        # transformed = transformed.unsqueeze(dim=0).unsqueeze(dim=-1)
-
         return transformed
     
     @property
