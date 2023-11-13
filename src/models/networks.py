@@ -188,9 +188,9 @@ class ComplexGaborLayer(nn.Module):
 class WIRE(nn.Module):
     def __init__(self, 
                  params,
-                 first_omega_0=30, 
-                 hidden_omega_0=30, 
-                 scale=30.0,
+                 first_omega_0=10, 
+                 hidden_omega_0=10, 
+                 scale=10.0,
                 ):
         super().__init__()
         

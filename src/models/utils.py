@@ -11,8 +11,8 @@ def get_device(net_name):
     device = ("cuda" if torch.cuda.is_available() else 
                         ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-    if "WIRE" in net_name and device == "mps":
-        return torch.device("cpu")
+    # if "WIRE" in net_name and device == "mps":
+    #     return torch.device("cpu")
     return torch.device(device)
 
 def get_config(config):
@@ -98,7 +98,7 @@ def ssim(x, xhat):
         x = x.numpy()
     if torch.is_tensor(xhat):
         xhat = xhat.numpy()
-    return structural_similarity(x,xhat)
+    return structural_similarity(x,xhat, data_range=xhat.max()-xhat.min())
 
 def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
