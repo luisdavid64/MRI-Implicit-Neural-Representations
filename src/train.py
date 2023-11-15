@@ -9,6 +9,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im
+from metrics.losses import HDRLoss_FF
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -66,6 +67,8 @@ if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
+elif config['loss'] == 'HDR':
+    loss_fn = HDRLoss_FF(config['loss_opts'])
 else:
     NotImplementedError
 
@@ -116,7 +119,11 @@ for epoch in range(max_epoch):
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         optim.zero_grad()
         train_output = model(coords)  # [bs, 2]
-        train_loss = 0.5 * loss_fn(train_output, gt)
+        train_loss = 0
+        if config['loss'] == 'HDR':
+            train_loss = loss_fn(train_output, gt, coords)
+        else:
+            train_loss = 0.5 * loss_fn(train_output, gt)
 
         train_loss.backward()
         optim.step()
@@ -138,7 +145,10 @@ for epoch in range(max_epoch):
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
-                test_loss = 0.5 * loss_fn(test_output, gt)
+                if config['loss'] == 'HDR':
+                    test_loss = loss_fn(test_loss, gt, coords)
+                else:
+                    test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
