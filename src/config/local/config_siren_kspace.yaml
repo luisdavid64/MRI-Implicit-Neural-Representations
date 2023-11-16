@@ -6,8 +6,8 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 500                # Maximum number of training iterations
-batch_size: 400000            # Batch size (320x320)
-loss: L2
+batch_size: 4000            # Batch size (320x320)
+loss: HDR
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
