@@ -1,7 +1,7 @@
 import os
 import argparse
 import shutil
-# from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.lr_scheduler import LambdaLR
 import torch
 import torch.backends.cudnn as cudnn
 import fastmri
@@ -21,6 +21,7 @@ config = get_config(opts.config)
 max_epoch = config['max_epoch']
 in_image_space = config["transform"]
 device = get_device(config["model"])
+device = torch.device("cpu")
 cudnn.benchmark = True
 
 # Setup output folder
@@ -108,7 +109,7 @@ save_im(image, image_directory, "train.png")
 # torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
 del train_image
 
-# scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
+scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
 print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
@@ -121,7 +122,7 @@ for epoch in range(max_epoch):
         train_output = model(coords)  # [bs, 2]
         train_loss = 0
         if config['loss'] == 'HDR':
-            train_loss = loss_fn(train_output, gt, coords)
+            train_loss, _ = loss_fn(train_output, gt, coords)
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
 
@@ -145,8 +146,9 @@ for epoch in range(max_epoch):
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
+                test_loss = 0
                 if config['loss'] == 'HDR':
-                    test_loss = loss_fn(test_loss, gt, coords)
+                    test_loss, _ = loss_fn(test_output, gt, coords)
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
@@ -173,4 +175,4 @@ for epoch in range(max_epoch):
                     'enc': encoder.B, \
                     'opt': optim.state_dict(), \
                     }, model_name)
-    # scheduler.step()
+    scheduler.step()
