@@ -74,7 +74,7 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0, custom_file_or_path = None):
+    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path = None):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
@@ -117,6 +117,7 @@ class MRIDataset(Dataset):
         # transformed = transformed.unsqueeze(dim=0).unsqueeze(dim=-1)
 
         return transformed
+    
     @classmethod
     def __load_files(cls, path_or_file, load_only_one_path_idx=None):
         
@@ -124,7 +125,7 @@ class MRIDataset(Dataset):
         @path_or_file: Following types are supported, file name or path as string or single path name
         @load_only_one_path_idx: If multiple files or path is provided, this can be set to load single file
         """
-        pass
+        
         if path_or_file.endswith(".h5"):
             # then we can assume that it is single file
             file = h5py.File(path_or_file, 'r')
@@ -135,8 +136,22 @@ class MRIDataset(Dataset):
             return data
         else:
             # Then it is path
+
+            # Malformed scans
+            fnames_filter = ['file_brain_AXT2_200_2000446.h5',
+                        'file_brain_AXT2_201_2010556.h5',
+                        'file_brain_AXT2_208_2080135.h5',
+                        'file_brain_AXT2_207_2070275.h5',
+                        'file_brain_AXT2_208_2080163.h5',
+                        'file_brain_AXT2_207_2070549.h5',
+                        'file_brain_AXT2_207_2070254.h5',
+                        'file_brain_AXT2_202_2020292.h5',
+                        ]
+            
+
             path = Path(path_or_file)
             files_paths = sorted(path.glob('*.h5'))
+            files_paths = [file for file in files_paths if (file not in fnames_filter)]
 
             # Assert check that we have loaded files
             assert len(files_paths) > 0, f"No files in the path {path_or_file}"
