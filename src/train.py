@@ -3,14 +3,13 @@ import argparse
 import shutil
 from torch.optim.lr_scheduler import LambdaLR
 import torch
-import torchvision
 import torch.backends.cudnn as cudnn
 import fastmri
 import torch.utils.tensorboard as tensorboardX
-
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
-from data.nerp_datasets import normalize_image
-from models.utils import get_config, prepare_sub_folder, get_data_loader, save_image_3d, psnr, ssim, get_device
+from models.wire2d  import WIRE2D
+from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im
+from metrics.losses import HDRLoss_FF
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -22,6 +21,7 @@ config = get_config(opts.config)
 max_epoch = config['max_epoch']
 in_image_space = config["transform"]
 device = get_device(config["model"])
+device = torch.device("cpu")
 cudnn.benchmark = True
 
 # Setup output folder
@@ -48,6 +48,8 @@ if config['model'] == 'SIREN':
     model = SIREN(config['net'])
 elif config['model'] == 'WIRE':
     model = WIRE(config['net'])
+elif config['model'] == 'WIRE2D':
+    model = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
     model = FFN(config['net'])
 else:
@@ -66,12 +68,15 @@ if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
+elif config['loss'] == 'HDR':
+    loss_fn = HDRLoss_FF(config['loss_opts'])
 else:
     NotImplementedError
 
 
 # Setup data loader
-dataset, data_loader = get_data_loader(
+# The only difference of val loader is that data is not shuffled
+dataset, data_loader, val_loader = get_data_loader(
     data=config['data'], 
     data_root=config['data_root'], 
     set=config['set'], 
@@ -80,7 +85,8 @@ dataset, data_loader = get_data_loader(
     num_workers=0, 
     sample=config["sample"], 
     slice=config["slice"],
-    shuffle=False
+    shuffle=True,
+    full_norm=config["full_norm"]
 )
 
 bs = config["batch_size"]
@@ -89,16 +95,18 @@ C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
-for it, (coords, gt) in enumerate(data_loader):
+# Reconstruct image from val
+for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
     train_image = fastmri.ifft2c(train_image)
-    train_image = normalize_image(train_image)
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
-torchvision.utils.save_image(torch.abs(train_image), os.path.join(image_directory, "train.png"))
+save_im(image, image_directory, "train.png")
+
+# torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
 del train_image
 
 scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
@@ -112,7 +120,11 @@ for epoch in range(max_epoch):
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         optim.zero_grad()
         train_output = model(coords)  # [bs, 2]
-        train_loss = 0.5 * loss_fn(train_output, gt)
+        train_loss = 0
+        if config['loss'] == 'HDR':
+            train_loss, _ = loss_fn(train_output, gt, coords)
+        else:
+            train_loss = 0.5 * loss_fn(train_output, gt)
 
         train_loss.backward()
         optim.step()
@@ -129,23 +141,27 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in enumerate(data_loader):
+            for it, (coords, gt) in enumerate(val_loader):
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
-                test_loss = 0.5 * loss_fn(test_output, gt)
+                test_loss = 0
+                if config['loss'] == 'HDR':
+                    test_loss, _ = loss_fn(test_output, gt, coords)
+                else:
+                    test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             im_recon = fastmri.ifft2c(im_recon)
-            im_recon = normalize_image(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
         test_psnr = psnr(image, im_recon).item() 
         test_ssim = ssim(image, im_recon).item() 
-        torchvision.utils.save_image(im_recon.squeeze(), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
+        save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr))
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         train_writer.add_scalar('test_ssim', test_ssim)
