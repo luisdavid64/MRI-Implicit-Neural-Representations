@@ -146,9 +146,12 @@ class MRIDataset(Dataset):
         data = T.to_tensor(data)
         if self.transform:
             data = self.__perform_fft(data)
-
-        # Make range of image [0,1]
-        data = normalize_image(data=data, full_norm=full_norm)
+            data = normalize_image(data=data, full_norm=full_norm)
+        else:
+            data = self.__perform_fft(data)
+            # Normalize data in image space
+            data = normalize_image(data=data, full_norm=full_norm)
+            data = fastmri.fft2c(data=data)
 
         display_tensor_stats(data)
         self.shape = data.shape # (Coil Dim, Height, Width)
