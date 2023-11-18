@@ -18,6 +18,9 @@ class TestAddFunction(unittest.TestCase):
         
         path = "data/knee_multicoil_train/file1000801.h5"
         
+        # Before the start of the test, make sure that file exsist
+        assert os.path.exists(path), f"File is not exsist {path}"
+
         # Load this file
         dataset = MRIDataset(data_class="knee", transform=False, custom_file_or_path=path)
 
