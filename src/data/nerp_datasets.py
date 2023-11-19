@@ -242,10 +242,12 @@ class MRIDataset(Dataset):
             for i in range(C):
                 mean = (data[i,:,:,:].mean())
                 std = (data[i,:,:,:].std())
+                max = (data[i,:,:,:].max())
+                min = (data[i,:,:,:].min())
                 stats_coil.append(
-                    (i, mean, std)
+                    (i, mean, std, max, min)
                 )
-            headers = ["coil", "mean", "std"]
+            headers = ["coil", "mean", "std", "max", "min"]
             table = tabulate(stats_coil, headers=headers)
             title = "{} Data Statistics Per Coil".format("Image" if transform else "K-space")
             print("{}\n{}".format(title,table))
