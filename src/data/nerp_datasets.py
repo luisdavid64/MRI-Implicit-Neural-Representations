@@ -15,6 +15,77 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 def complex_center_crop(data, shape):
     """
     Apply a center crop to the input image or batch of complex images.
+    Args:
+        data (torch.Tensor): The complex input tensor to be center cropped. It should
+            have at least 3 dimensions and the cropping is applied along dimensions
+            -3 and -2 and the last dimensions should have a size of 2.
+        shape (int, int): The output shape. The shape should be smaller than the
+            corresponding dimensions of data.
+    Returns:
+        torch.Tensor: The center cropped image
+    """
+    assert 0 < shape[0] <= data.shape[-3]
+    assert 0 < shape[1] <= data.shape[-2]
+    w_from = (data.shape[-3] - shape[0]) // 2
+    h_from = (data.shape[-2] - shape[1]) // 2
+    w_to = w_from + shape[0]
+    h_to = h_from + shape[1]
+    return data[..., w_from:w_to, h_from:h_to, :]
+
+def extract_smaps(kspace, low_freq_percentage=8):
+    """Extract raw sensitivity maps for kspaces
+
+    This function will first select a low frequency region in all the kspaces,
+    then Fourier invert it, and finally perform a normalization by the root
+    sum-of-square.
+    kspace has to be of shape: nslices x ncoils x height x width
+
+    Arguments:
+        kspace (torch.Tensor): the kspace whose sensitivity maps you want extracted.
+        low_freq_percentage (int): the low frequency region to consider for
+            sensitivity maps extraction, given as a percentage of the width of
+            the kspace. In fastMRI, it's 8 for an acceleration factor of 4, and
+            4 for an acceleration factor of 8. Defaults to 8.
+
+    Returns:
+        torch.Tensor: extracted raw sensitivity maps.
+    """
+    k_shape = torch.tensor(kspace.shape[-2:])
+    n_low_freq = torch.tensor(k_shape * low_freq_percentage / 100, dtype=torch.int32)
+    center_dimension = torch.tensor(k_shape / 2, dtype=torch.int32)
+    low_freq_lower_locations = center_dimension - n_low_freq // 2
+    low_freq_upper_locations = center_dimension + n_low_freq // 2
+    
+    ### Masking strategy
+    x_range = torch.arange(0, k_shape[0])
+    y_range = torch.arange(0, k_shape[1])
+    X_range, Y_range = torch.meshgrid(x_range, y_range)
+    X_mask = (X_range <= low_freq_upper_locations[0]) & (X_range >= low_freq_lower_locations[0])
+    Y_mask = (Y_range <= low_freq_upper_locations[1]) & (Y_range >= low_freq_lower_locations[1])
+    low_freq_mask = torch.transpose(X_mask & Y_mask, 0, 1).unsqueeze(0).unsqueeze(0)
+    low_freq_mask = low_freq_mask.expand_as(kspace)
+    ###
+    
+    low_freq_kspace  = kspace * low_freq_mask.to(kspace.dtype)
+    
+    # Assuming ortho_ifft2d is a function performing 2D Inverse Fourier Transform
+    # You might need to replace this with the PyTorch equivalent
+    # (e.g., torch.fft.ifft2 or torch.fft.ifftn)
+    coil_image_low_freq = fastmri.ifft2(low_freq_kspace)
+    
+    # no need to norm this since they all have the same norm
+    low_freq_rss = torch.norm(coil_image_low_freq, dim=1)
+    coil_smap = coil_image_low_freq / low_freq_rss.unsqueeze(1)
+    
+    # for now, we do not perform background removal based on low_freq_rss
+    # could be done with 1D k-means or fixed background_thresh, with torch.where
+    
+    return coil_smap
+
+
+def complex_center_crop(data, shape):
+    """
+    Apply a center crop to the input image or batch of complex images.
 
     Args:
         data (torch.Tensor): The complex input tensor to be center cropped. It should
@@ -126,7 +197,9 @@ class MRIDataset(Dataset):
                  sample=0, slice=0, 
                  full_norm=False, 
                  custom_file_or_path = None,
-                 per_coil_stats=True):
+                 per_coil_stats=True,
+                 centercrop=(320,320),
+                 ):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
@@ -148,10 +221,14 @@ class MRIDataset(Dataset):
         data = T.to_tensor(data)
         if self.transform:
             data = self.__perform_fft(data)
+            if centercrop:
+                data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
         else:
             data = self.__perform_fft(data)
             # Normalize data in image space
+            if centercrop:
+                data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
 
