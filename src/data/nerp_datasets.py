@@ -7,6 +7,10 @@ import h5py
 from pathlib import Path
 from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
+import os
+from tabulate import tabulate
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def complex_center_crop(data, shape):
     """
@@ -113,7 +117,16 @@ class ImageDataset_3D(Dataset):
         return 1
 
 class MRIDataset(Dataset):
-    def __init__(self, data_class='brain', data_root="data",challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path = None):
+    def __init__(self, 
+                 data_class='brain', 
+                 data_root="data",
+                 challenge='multicoil', 
+                 set="train", 
+                 transform=True, 
+                 sample=0, slice=0, 
+                 full_norm=False, 
+                 custom_file_or_path = None,
+                 per_coil_stats=True):
         # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
@@ -147,6 +160,19 @@ class MRIDataset(Dataset):
         C,H,W,S = self.shape
         # Flatten image and grid
         # What to do with complex numbers?
+        if per_coil_stats:
+            stats_coil = []
+            for i in range(C):
+                mean = (data[i,:,:,:].mean())
+                std = (data[i,:,:,:].std())
+                stats_coil.append(
+                    (i, mean, std)
+                )
+            headers = ["coil", "mean", "std"]
+            table = tabulate(stats_coil, headers=headers)
+            title = "{} Data Statistics Per Coil".format("Image" if transform else "K-space")
+            print("{}\n{}".format(title,table))
+
         self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
@@ -222,4 +248,4 @@ class MRIDataset(Dataset):
         return len(self.image)  #self.X.shape[0]
 
 if __name__ == "__main__":
-    x = MRIDataset()
+    x = MRIDataset(transform=False)
