@@ -21,7 +21,6 @@ config = get_config(opts.config)
 max_epoch = config['max_epoch']
 in_image_space = config["transform"]
 device = get_device(config["model"])
-device = torch.device("cpu")
 cudnn.benchmark = True
 
 # Setup output folder
