@@ -3,7 +3,7 @@
 
 # Data
 
-We use [FastMRI's multi coil dataset](https://fastmri.org/) for our experiments. For easy use with local config files, download the data and symlink it to directory [data](/data/).
+We use [FastMRI's multi coil dataset](https://fastmri.org/) for our experiments. For easy use with local config files, download the data and symlink it to ./data.
 
 # Requirements
 
@@ -18,7 +18,5 @@ We use [FastMRI's multi coil dataset](https://fastmri.org/) for our experiments.
 To run an experiment create a [configuration file as in here](src/config/local). Some basic configuration files already exist and the basic usage is
 
 ```
-
 python src/train.py src/train.py --config path/to/config
-
 ```
