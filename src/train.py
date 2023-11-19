@@ -120,7 +120,7 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(kcoords)
+        kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -148,7 +148,7 @@ for epoch in range(max_epoch):
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
             for it, (coords, gt) in enumerate(val_loader):
-                kcoords = torch.clone(kcoords)
+                kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
