@@ -46,5 +46,5 @@ data_root: data
 set: train
 slice: 0
 sample: 0
-transform: True      # Set to false for k-space
+transform: False      # Set to false for k-space
 full_norm: True
