@@ -15,4 +15,5 @@ pyYAML==6.0.1
 odl==0.7.0
 fastmri==0.3.0
 tensorboard
+tabulate
 # astra-toolbox

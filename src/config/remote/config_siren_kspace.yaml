@@ -5,14 +5,15 @@ image_save_epoch: 20        # How often do you want to save output images during
 display_image_num: 8
 
 # Optimization options
-max_epoch: 500                # Maximum number of training iterations
-batch_size: 4000            # Batch size (320x320)
+max_epoch: 1000                # Maximum number of training iterations
+batch_size: 20000            # Batch size (320x320)
 loss: HDR
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0             # Weight decay
+weight_decay: 0.0001             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.0001                    # Initial learning rate
+lr: 0.00001                    # Initial learning rate
+
 
 ############### Loss modifications ################
 loss_opts:
@@ -27,7 +28,7 @@ net:
   network_input_size: 512     # Input size for network
   network_output_size: 2 
   network_depth: 8            # Depth of MLP layers
-  network_width: 256          # Width of MLP layers
+  network_width: 512          # Width of MLP layers
 
 encoder:
   embedding: gauss            #  Input embedding method
