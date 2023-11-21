@@ -8,6 +8,7 @@ from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
+import fastmri
 
 def get_device(net_name):
     device = ("cuda" if torch.cuda.is_available() else 
@@ -119,6 +120,18 @@ def psnr(x, xhat, epsilon=1e-10):
     return snrval
 
 # Save MRI image with matplotlib
-def save_im(image, image_directory, image_name):
-    plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
+def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8):
+    if not is_kspace:
+        plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
+    else:
+        kspace_grid = fastmri.complex_abs(image.detach()).squeeze(dim=0)
+        kspace_grid = fastmri.rss(kspace_grid, dim=0)
+        sf = torch.tensor(smoothing_factor, dtype=torch.float32)
+        kspace_grid *= torch.expm1(sf) / kspace_grid.max()
+        kspace_grid = torch.log1p(kspace_grid)  # Adds 1 to input for natural log.
+        kspace_grid /= kspace_grid.max()  # Standardization to 0~1 range.
+        kspace_grid = kspace_grid.squeeze().to(device='cpu', non_blocking=True)
+        print(kspace_grid.shape)
+        plt.imsave(os.path.join(image_directory, image_name), kspace_grid.numpy(), format="png", cmap="gray")
+
     plt.clf()

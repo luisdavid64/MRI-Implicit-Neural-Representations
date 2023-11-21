@@ -99,6 +99,7 @@ for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
+    save_im(train_image, image_directory, "train_kspace.png", is_kspace=True)
     train_image = fastmri.ifft2c(train_image)
 train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
@@ -162,6 +163,7 @@ for epoch in range(max_epoch):
                 im_recon[it*bs:(it+1)*bs, :] = test_output
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
+            save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
             im_recon = fastmri.ifft2c(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)

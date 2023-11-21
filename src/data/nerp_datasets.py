@@ -111,23 +111,6 @@ def normalize_image(data, full_norm=False):
     data_flat = data.reshape(C,-1)
     norm = torch.abs(data_flat).max()
     return data/norm 
-
-# def normalize_image_1(data, full_norm=False):
-    
-#     mean = data.mean()
-#     std = data.std()
-#     return (data - mean) / (std)
-
-# def normalize_image(data, full_norm=True):
-#     re = data[:,:,:,0]
-#     im = data[:,:,:,1]
-#     re_min = re.min()
-#     im_min = im.min()
-#     re = 2 * (re - re_min)/(re.max() - re_min) -1
-#     im = 2 * (im - im_min)/(im.max() - im_min) -1
-#     data = torch.stack((re,im),dim=-1)
-#     return data
-
     
 def create_grid_3d(c, h, w):
     grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
@@ -229,8 +212,9 @@ class MRIDataset(Dataset):
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, centercrop)
-            data = normalize_image(data=data, full_norm=full_norm)
+            # data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
+            data = self.__normalize_per_coil(data)
 
         display_tensor_stats(data)
         self.shape = data.shape # (Coil Dim, Height, Width)
@@ -254,6 +238,16 @@ class MRIDataset(Dataset):
 
         self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
+
+    @classmethod
+    def __normalize_per_coil(cls, k_space):
+        for coil in range(k_space.shape[0]):
+            mx = torch.abs(k_space[coil,...]).max().item()
+            print(k_space[coil,...].shape)
+            k_space[coil,...] =  k_space[coil,...]/mx
+        return k_space
+
+
 
     @classmethod
     def __perform_fft(cls, k_space):

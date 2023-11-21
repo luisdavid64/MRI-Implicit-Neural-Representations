@@ -10,6 +10,7 @@ class HDRLoss_FF(torch.nn.Module):
         self.factor = float(config['hdr_ff_factor'])
 
     def forward(self, input, target, kcoords, weights=None, reduce=True):
+        # coords shape again: 
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
         filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
 
