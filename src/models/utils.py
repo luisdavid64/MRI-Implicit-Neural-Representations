@@ -3,7 +3,7 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
-
+from tabulate import tabulate
 from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
 import numpy as np
@@ -135,3 +135,18 @@ def save_im(image, image_directory, image_name, is_kspace=False, smoothing_facto
         plt.imsave(os.path.join(image_directory, image_name), kspace_grid.numpy(), format="png", cmap="gray")
 
     plt.clf()
+
+def stats_per_coil(im_recon, C):
+    stats_coil = []
+    for i in range(C):
+        mean = (im_recon[i,:,:,:].mean())
+        std = (im_recon[i,:,:,:].std())
+        max = (im_recon[i,:,:,:].max())
+        min = (im_recon[i,:,:,:].min())
+        stats_coil.append(
+            (i, mean, std, max, min)
+        )
+    headers = ["coil", "mean", "std", "max", "min"]
+    table = tabulate(stats_coil, headers=headers)
+    title = "{} Reconstruction Statistics Per Coil".format("K-space")
+    print("{}\n{}".format(title,table))

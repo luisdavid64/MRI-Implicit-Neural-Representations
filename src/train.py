@@ -5,10 +5,11 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch
 import torch.backends.cudnn as cudnn
 import fastmri
+from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
-from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im
+from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss
 
 parser = argparse.ArgumentParser()
@@ -74,6 +75,11 @@ elif config['loss'] == 'HDR':
 else:
     NotImplementedError
 
+if "pretrain" in config:
+    checkpoint = torch.load(config["pretrain"], map_location=torch.device('cpu'))
+    model.load_state_dict(checkpoint["net"])
+    optim.load_state_dict(checkpoint["opt"])
+    encoder.B = checkpoint["enc"]
 
 # Setup data loader
 # The only difference of val loader is that data is not shuffled
@@ -150,7 +156,7 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in enumerate(val_loader):
+            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
@@ -166,6 +172,7 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
+            stats_per_coil(im_recon, C)
             im_recon = fastmri.ifft2c(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
