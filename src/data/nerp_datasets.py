@@ -212,9 +212,9 @@ class MRIDataset(Dataset):
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, centercrop)
-            # data = normalize_image(data=data, full_norm=full_norm)
+            data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
-            data = self.__normalize_per_coil(data)
+            # data = self.__normalize_per_coil(data)
 
         display_tensor_stats(data)
         self.shape = data.shape # (Coil Dim, Height, Width)

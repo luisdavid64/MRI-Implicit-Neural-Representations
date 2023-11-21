@@ -1,4 +1,35 @@
 import torch
+
+class TLoss(torch.nn.Module):
+
+    def __init__(self):
+        super().__init__()
+    def forward(self, X: torch.Tensor, Y: torch.Tensor):
+
+        if X.dtype == torch.float:
+            X = torch.view_as_complex(X) #* filter_value
+        if Y.dtype == torch.float:
+            Y = torch.view_as_complex(Y)
+
+        assert X.is_complex()
+        assert Y.is_complex()
+
+        mag_input = torch.abs(X)
+        mag_target = torch.abs(Y)
+        cross = torch.abs(X.real * Y.imag - X.imag * Y.real)
+
+        angle = torch.atan2(X.imag, X.real) - torch.atan2(Y.imag, Y.real)
+        ploss = torch.abs(cross) / (mag_input + 1e-8)
+
+        aligned_mask = (torch.cos(angle) < 0).bool()
+
+        final_term = torch.zeros_like(ploss)
+        final_term[aligned_mask] = mag_target[aligned_mask] + (mag_target[aligned_mask] - ploss[aligned_mask])
+        final_term[~aligned_mask] = ploss[~aligned_mask]
+        return (final_term + torch.nn.functional.mse_loss(mag_input, mag_target)).mean()
+
+
+
 class HDRLoss_FF(torch.nn.Module):
     """
     HDR loss function with frequency filtering (v4)

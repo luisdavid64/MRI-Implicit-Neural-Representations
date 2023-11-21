@@ -9,7 +9,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im
-from metrics.losses import HDRLoss_FF
+from metrics.losses import HDRLoss_FF, TLoss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -65,6 +65,8 @@ else:
 # Setup loss functions
 if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
+if config['loss'] == 'T':
+    loss_fn = TLoss()
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
