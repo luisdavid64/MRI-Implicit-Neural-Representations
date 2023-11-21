@@ -101,7 +101,8 @@ def ssim(x, xhat):
         x = x.numpy()
     if torch.is_tensor(xhat):
         xhat = xhat.numpy()
-    return structural_similarity(x,xhat, data_range=xhat.max()-xhat.min())
+    data_range = np.maximum(x.max(), xhat.max()) - np.minimum(x.min(), xhat.min())
+    return structural_similarity(x,xhat, data_range=data_range)
 
 def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
@@ -131,7 +132,6 @@ def save_im(image, image_directory, image_name, is_kspace=False, smoothing_facto
         kspace_grid = torch.log1p(kspace_grid)  # Adds 1 to input for natural log.
         kspace_grid /= kspace_grid.max()  # Standardization to 0~1 range.
         kspace_grid = kspace_grid.squeeze().to(device='cpu', non_blocking=True)
-        print(kspace_grid.shape)
         plt.imsave(os.path.join(image_directory, image_name), kspace_grid.numpy(), format="png", cmap="gray")
 
     plt.clf()
