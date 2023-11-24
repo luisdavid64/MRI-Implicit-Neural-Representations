@@ -10,7 +10,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss
+from metrics.losses import HDRLoss_FF, TLoss, LogSpaceLoss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -35,7 +35,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_special_embed")
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -68,6 +68,8 @@ if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
 if config['loss'] == 'T':
     loss_fn = TLoss()
+if config['loss'] == 'LSL':
+    loss_fn = LogSpaceLoss(config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':

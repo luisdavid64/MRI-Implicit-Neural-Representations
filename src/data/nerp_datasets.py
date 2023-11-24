@@ -212,7 +212,7 @@ class MRIDataset(Dataset):
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, centercrop)
-            # data = normalize_image(data=data, full_norm=full_norm)
+            data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
             data = self.__normalize_per_coil(data)
 
@@ -241,11 +241,13 @@ class MRIDataset(Dataset):
 
     @classmethod
     def __normalize_per_coil(cls, k_space):
-        mx = torch.abs(k_space).max().item()
-        k_space = k_space/mx
-        for coil in range(k_space.shape[0]):
-            mx = torch.abs(k_space[coil,...]).max().item()
-            k_space[coil,...] =  k_space[coil,...]/mx
+        # mx = torch.abs(k_space).max().item()
+        # k_space = k_space/mx
+        # max_per_coil = torch.abs(k_space.reshape(k_space.shape[0],-1)).max(dim=-1,keepdim=True)[0]
+        # k_space = k_space/max_per_coil.unsqueeze(2).unsqueeze(3)
+        # k_space = torch.log(k_space + 1)
+        # mx = torch.abs(k_space).max().item()
+        # k_space = k_space/mx
         return k_space
 
 

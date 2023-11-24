@@ -1,4 +1,5 @@
 import torch
+device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 class TLoss(torch.nn.Module):
 
@@ -28,6 +29,30 @@ class TLoss(torch.nn.Module):
         final_term[~aligned_mask] = ploss[~aligned_mask]
         return (final_term + torch.nn.functional.mse_loss(mag_input, mag_target)).mean()
 
+class LogSpaceLoss(torch.nn.Module):
+    """
+    HDR loss function with frequency filtering (v4)
+    """
+    def __init__(self, config):
+        super().__init__()
+        self.sigma = float(config['hdr_ff_sigma'])
+        self.eps = float(config['hdr_eps'])
+        self.factor = float(config['hdr_ff_factor'])
+
+    def forward(self, input, target):
+        input = input.cpu()
+        target = target.cpu()
+        # coords shape again: 
+        if input.dtype == torch.float:
+            input = torch.view_as_complex(input) #* filter_value
+        if target.dtype == torch.float:
+            target = torch.view_as_complex(target)
+        
+        # assert input.shape == target.shape
+        error = input - target
+
+        return ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
+        
 
 
 class HDRLoss_FF(torch.nn.Module):
