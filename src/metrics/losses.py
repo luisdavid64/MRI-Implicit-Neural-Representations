@@ -1,12 +1,13 @@
 import torch
 device = ("cuda" if torch.cuda.is_available() else "cpu")
+import fastmri
+from torch.nn import MarginRankingLoss
 
 class TLoss(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
     def forward(self, X: torch.Tensor, Y: torch.Tensor):
-
         if X.dtype == torch.float:
             X = torch.view_as_complex(X) #* filter_value
         if Y.dtype == torch.float:
@@ -29,6 +30,44 @@ class TLoss(torch.nn.Module):
         final_term[~aligned_mask] = ploss[~aligned_mask]
         return (final_term + torch.nn.functional.mse_loss(mag_input, mag_target)).mean()
 
+class CenterLoss(torch.nn.Module):
+    """
+    HDR loss function with frequency filtering (v4)
+    """
+    def __init__(self, config):
+        super().__init__()
+        self.sigma = float(config['hdr_ff_sigma'])
+        self.eps = float(config['hdr_eps'])
+        self.factor = float(config['hdr_ff_factor'])
+        self.rank_loss = MarginRankingLoss(margin=0)
+
+    def forward(self, input, target, kcoords):
+        input = input.to(device)
+        target = target.to(device)
+        kcoords = kcoords.cpu()
+        dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+
+        if input.dtype == torch.float:
+            input = torch.view_as_complex(input) #* filter_value
+        if target.dtype == torch.float:
+            target = torch.view_as_complex(target)
+
+        mx = torch.abs(target).max()
+        # Magnitudes
+        abs_value = torch.abs(input) 
+        # Distance from center
+        sort_ind = dist_to_center2.argsort()
+        dist_to_center2 = dist_to_center2[sort_ind]
+        abs_value =  abs_value[sort_ind]
+        cp = torch.roll(abs_value.clone(), shifts=1)
+        cp[0] = mx
+        rank_loss = self.rank_loss(cp, abs_value,torch.ones(abs_value.shape))
+
+        # assert input.shape == target.shape
+        error = input - target
+        error_loss = ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
+        return error_loss + rank_loss, 0
+        
 class LogSpaceLoss(torch.nn.Module):
     """
     HDR loss function with frequency filtering (v4)
@@ -42,17 +81,30 @@ class LogSpaceLoss(torch.nn.Module):
     def forward(self, input, target):
         input = input.cpu()
         target = target.cpu()
-        # coords shape again: 
-        if input.dtype == torch.float:
-            input = torch.view_as_complex(input) #* filter_value
-        if target.dtype == torch.float:
-            target = torch.view_as_complex(target)
+        input_abs =None
+        if input.shape[-1] > 2:
+            input_abs = input[...,2]
+            input_com = torch.clone(input[...,0:2])
+        if target.shape[-1] > 2:
+            target_abs = target[...,2]
+            target_com = torch.clone(target[...,0:2])
+
+        mag_loss = 0
+        if input_abs != None:
+            mag_loss = torch.nn.functional.mse_loss(input_abs, target_abs)
+            abs_value = fastmri.complex_abs(input_com) 
+            abs_loss = torch.nn.functional.mse_loss(input_abs, abs_value)
+            mag_loss = mag_loss + abs_loss
+            
+        if input_com.dtype == torch.float:
+            input_com = torch.view_as_complex(input_com) #* filter_value
+        if target_com.dtype == torch.float:
+            target_com = torch.view_as_complex(target_com)
         
         # assert input.shape == target.shape
-        error = input - target
-
-        return ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
-        
+        error = input_com - target_com
+        error_loss = ((error.abs()/(input_com.detach().abs()+self.eps))**2).mean()
+        return error_loss + mag_loss
 
 
 class HDRLoss_FF(torch.nn.Module):

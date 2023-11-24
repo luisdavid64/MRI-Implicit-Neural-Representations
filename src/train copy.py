@@ -35,7 +35,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_rank")
+output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_normal_with_thingy")
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -103,11 +103,11 @@ image_shape = dataset.img_shape
 C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
-train_image = torch.zeros(((C*H*W),S)).to(device)
+train_image = torch.zeros(((C*H*W),S-1)).to(device)
 # Reconstruct image from val
 for it, (coords, gt) in enumerate(val_loader):
-    train_image[it*bs:(it+1)*bs, :] = gt.to(device)
-train_image = train_image.reshape(C,H,W,S).cpu()
+    train_image[it*bs:(it+1)*bs, :] = gt[...,0:2].to(device)
+train_image = train_image.reshape(C,H,W,S-1).cpu()
 if not in_image_space: # If in k-space apply inverse fourier trans
     save_im(train_image, image_directory, "train_kspace.png", is_kspace=True)
     train_image = fastmri.ifft2c(train_image)
@@ -138,7 +138,7 @@ for epoch in range(max_epoch):
         optim.zero_grad()
         train_output = model(coords)  # [bs, 2]
         train_loss = 0
-        if config['loss'] == 'HDR' or config['loss'] == "LSL":
+        if config['loss'] == 'HDR':
             train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
@@ -156,7 +156,7 @@ for epoch in range(max_epoch):
     if (epoch + 1) % config['val_epoch'] == 0:
         model.eval()
         test_running_loss = 0
-        im_recon = torch.zeros(((C*H*W),S)).to(device)
+        im_recon = torch.zeros(((C*H*W),S-1)).to(device)
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
@@ -165,13 +165,15 @@ for epoch in range(max_epoch):
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
                 test_loss = 0
-                if config['loss'] == 'HDR' or config['loss'] == "LSL":
+                if config['loss'] == 'HDR':
                     test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
-                im_recon[it*bs:(it+1)*bs, :] = test_output
-        im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
+                im_recon[it*bs:(it+1)*bs, :] = test_output[...,0:2]
+        im_recon = im_recon.reshape(C,H,W,S-1).detach().cpu()
+        if im_recon.shape[-1] > 2:
+            im_recon = im_recon[...,0:2]
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
             stats_per_coil(im_recon, C)
