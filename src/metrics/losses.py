@@ -40,6 +40,9 @@ class CenterLoss(torch.nn.Module):
         self.eps = float(config['hdr_eps'])
         self.factor = float(config['hdr_ff_factor'])
         # self.rank_loss = MarginRankingLoss(margin=0)
+    
+    def radial_mask(self, dist, percent):
+        return dist <= percent
 
     def forward(self, input, target, kcoords):
         # error_loss = ((input - target)**2).mean()
@@ -47,7 +50,7 @@ class CenterLoss(torch.nn.Module):
         target = target.to(device)
         kcoords = kcoords.to(device)
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
-        # filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2))
+        mask = self.radial_mask(dist_to_center2, 0.3)
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
@@ -61,10 +64,12 @@ class CenterLoss(torch.nn.Module):
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
         # Magnitude loss
-        abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))**2
+        abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))
+
+        center_loss = 4*torch.nn.functional.mse_loss(input_abs[mask],target_abs[mask]) 
 
         # assert input.shape == target.shape
-        return 0.7 * error_loss.mean() + 0.3 * abs_loss.mean(), 0
+        return error_loss.mean() + abs_loss.mean() + center_loss, 0
 
 # class CenterLoss(torch.nn.Module):
 #     """
