@@ -42,10 +42,12 @@ class CenterLoss(torch.nn.Module):
         # self.rank_loss = MarginRankingLoss(margin=0)
 
     def forward(self, input, target, kcoords):
+        error_loss = ((input - target)**2).sum()
         input = input.to(device)
         target = target.to(device)
         kcoords = kcoords.cpu()
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+        dist_to_center2_weight = 1/(dist_to_center2 + 1)
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
@@ -54,28 +56,47 @@ class CenterLoss(torch.nn.Module):
 
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
-        a = torch.randint(0, input_abs.size(0), (input_abs.size(0),), device=device)
-        b = torch.randint(0, target_abs.size(0), (target_abs.size(0),), device=device)
-        diff_pred = input_abs[a] - input_abs[b]
-        diff_gt = target_abs[a] - target_abs[b]
-        # If they are close together in radial space then it doesn't matter?
-        weight = 100*(torch.abs(dist_to_center2[a] - dist_to_center2[b])) + 1
-        rank_loss = torch.mean(weight*(diff_pred - diff_gt)**2)
-        # mx = torch.abs(target).max()
-        # Magnitudes
-        # abs_value = torch.abs(input) 
-        # # Distance from center
-        # sort_ind = dist_to_center2.argsort()
-        # dist_to_center2 = dist_to_center2[sort_ind]
-        # abs_value =  abs_value[sort_ind]
-        # cp = torch.roll(abs_value.clone(), shifts=1)
-        # cp[0] = mx
-        # rank_loss = self.rank_loss(cp, abs_value,torch.ones(abs_value.shape))
+        abs_loss = (dist_to_center2_weight* (target_abs - input_abs)**2).sum()
 
         # assert input.shape == target.shape
-        error = input - target
-        error_loss = ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
-        return error_loss + rank_loss, 0
+        return error_loss + abs_loss, 0
+
+# class CenterLoss(torch.nn.Module):
+#     """
+#     HDR loss function with frequency filtering (v4)
+#     """
+#     def __init__(self, config):
+#         super().__init__()
+#         self.sigma = float(config['hdr_ff_sigma'])
+#         self.eps = float(config['hdr_eps'])
+#         self.factor = float(config['hdr_ff_factor'])
+#         # self.rank_loss = MarginRankingLoss(margin=0)
+
+#     def forward(self, input, target, kcoords):
+#         input = input.to(device)
+#         target = target.to(device)
+#         kcoords = kcoords.cpu()
+#         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+
+#         if input.dtype == torch.float:
+#             input = torch.view_as_complex(input) #* filter_value
+#         if target.dtype == torch.float:
+#             target = torch.view_as_complex(target)
+
+#         target_abs = torch.abs(target)
+#         input_abs = torch.abs(input)
+#         a = torch.randint(0, input_abs.size(0), (input_abs.size(0),), device=device)
+#         b = torch.randint(0, target_abs.size(0), (target_abs.size(0),), device=device)
+#         diff_pred = input_abs[a] - input_abs[b]
+#         diff_gt = target_abs[a] - target_abs[b]
+#         # If they are close together in radial space then it doesn't matter?
+#         weight = 10*(torch.abs(dist_to_center2[a] - dist_to_center2[b])) + 1
+#         rank_loss = torch.mean(weight*(diff_pred - diff_gt)**2)
+
+#         # assert input.shape == target.shape
+#         error = input - target
+#         error_loss = ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
+#         return error_loss + rank_loss, 0
         
 class LogSpaceLoss(torch.nn.Module):
     """
