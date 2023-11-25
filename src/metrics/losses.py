@@ -42,24 +42,29 @@ class CenterLoss(torch.nn.Module):
         # self.rank_loss = MarginRankingLoss(margin=0)
 
     def forward(self, input, target, kcoords):
-        error_loss = ((input - target)**2).mean()
+        # error_loss = ((input - target)**2).mean()
         input = input.to(device)
         target = target.to(device)
         kcoords = kcoords.to(device)
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
-        filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2))
+        # filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2))
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
         if target.dtype == torch.float:
             target = torch.view_as_complex(target)
 
+        error = input - target
+
+        error_loss = (error.abs()/(input.detach().abs()+self.eps))**2
+
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
-        abs_loss = (filter_value * (target_abs - input_abs)**2).mean()
+        # Magnitude loss
+        abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))**2
 
         # assert input.shape == target.shape
-        return error_loss + abs_loss, 0
+        return 0.7 * error_loss.mean() + 0.3 * abs_loss.mean(), 0
 
 # class CenterLoss(torch.nn.Module):
 #     """
