@@ -187,7 +187,9 @@ for epoch in range(max_epoch):
             best_ssim = test_ssim
             best_ssim_ep = epoch
         # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
-        save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr))
+        save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}.png".format(epoch + 1, test_psnr))
+        # Plot relative error
+        save_im((image - im_recon.squeeze()/image + 1e-9), image_directory, "recon_{}_{:.4g}_error.png".format(epoch + 1, test_psnr))
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         train_writer.add_scalar('test_ssim', test_ssim)
