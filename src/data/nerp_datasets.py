@@ -108,8 +108,9 @@ def complex_center_crop(data, shape):
 def normalize_image(data, full_norm=False):
     
     C,_,_,_ = data.shape
-    data_flat = data.reshape(C,-1)
-    norm = torch.abs(data_flat).max()
+    # data_flat = data.reshape(C,-1)
+    # norm = torch.abs(data_flat).max()
+    norm = fastmri.complex_abs(data).max()
     return data/norm 
     
 def create_grid_3d(c, h, w):
@@ -208,6 +209,7 @@ class MRIDataset(Dataset):
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
         else:
+            data = self.__normalize_per_coil(data)
             data = self.__perform_fft(data)
             # Normalize data in image space
             if centercrop:
@@ -219,7 +221,6 @@ class MRIDataset(Dataset):
             # data = torch.view_as_complex(data)
             # print(torch.unique(torch.eq(torch.abs(data).unsqueeze(-1),data_abs), return_counts=True))
             # data = torch.cat((data,data_abs), dim=-1)
-            data = self.__normalize_per_coil(data)
 
         display_tensor_stats(data)
         # display_tensor_stats(data[...,0:2])
