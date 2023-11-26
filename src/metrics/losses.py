@@ -64,7 +64,7 @@ class CenterLoss(torch.nn.Module):
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
         # Magnitude loss
-        abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))
+        abs_loss = ((target_abs - input_abs).abs()/(input.detach().abs()+self.eps))
 
         center_loss = torch.tensor([0.0], device=device) 
         for masking_dist in range (1,6):
