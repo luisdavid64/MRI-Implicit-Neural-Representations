@@ -129,7 +129,14 @@ def create_coords(c, h, w):
                             X.reshape(-1, 1)))
     return grid
 
-def display_tensor_stats(tensor):
+def display_tensor_stats(tensor, with_plot=False):
+    if with_plot:
+        plt.boxplot(torch.view_as_complex(tensor).abs().reshape(-1), vert=False)  # vert=False makes it a horizontal boxplot
+        plt.title('Plot of K-space')
+        plt.xlabel('Value')
+        plt.ylabel('Frequency')
+        # Show the plot
+        plt.show()
     shape, vmin, vmax, vmean, vstd = tensor.shape, tensor.min(), tensor.max(), torch.mean(tensor), torch.std(tensor)
     print('shape:{} | min:{:.5f} | max:{:.5f} | mean:{:.5f} | std:{:.5f}'.format(shape, vmin, vmax, vmean, vstd))
 
@@ -222,7 +229,7 @@ class MRIDataset(Dataset):
             # print(torch.unique(torch.eq(torch.abs(data).unsqueeze(-1),data_abs), return_counts=True))
             # data = torch.cat((data,data_abs), dim=-1)
 
-        display_tensor_stats(data)
+        display_tensor_stats(data, with_plot=False)
         # display_tensor_stats(data[...,0:2])
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
