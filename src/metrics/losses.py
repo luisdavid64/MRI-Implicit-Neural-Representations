@@ -78,8 +78,11 @@ class CenterLoss(torch.nn.Module):
             # Take as many as there exists in both
             n =  min(1000,min(len(masked_1), len(masked_2)))
             if n == 0: continue
-            diff_pred = masked_1[:n] - masked_2[:n]
-            diff_gt = target_abs[mask_1][:n] - target_abs[mask_2][:n]
+            # Choose these randomly, as before we only the first
+            a = torch.randperm(masked_1.size(0))[:n]
+            b = torch.randperm(masked_2.size(0))[:n]
+            diff_pred = masked_1[a] - masked_2[b]
+            diff_gt = target_abs[mask_1][a] - target_abs[mask_2][b]
             # If they are close together in radial space then it doesn't matter?
             center_loss += ((diff_pred - diff_gt)**2).mean()
 
