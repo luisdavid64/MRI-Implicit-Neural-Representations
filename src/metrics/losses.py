@@ -39,6 +39,7 @@ class CenterLoss(torch.nn.Module):
         self.sigma = float(config['hdr_ff_sigma'])
         self.eps = float(config['hdr_eps'])
         self.factor = float(config['hdr_ff_factor'])
+        self.min_sample = int(config['min_sample'])
         # self.rank_loss = MarginRankingLoss(margin=0)
     
     def radial_mask(self, dist, percent):
@@ -76,7 +77,7 @@ class CenterLoss(torch.nn.Module):
             masked_1 = input_abs[mask_1]
             masked_2 = input_abs[mask_2]
             # Take as many as there exists in both
-            n =  min(1000,min(len(masked_1), len(masked_2)))
+            n =  min(self.min_sample,min(len(masked_1), len(masked_2)))
             if n == 0: continue
             # Choose these randomly, as before we only the first
             a = torch.randperm(masked_1.size(0))[:n]
