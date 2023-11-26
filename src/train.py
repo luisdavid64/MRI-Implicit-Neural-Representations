@@ -108,6 +108,7 @@ train_image = torch.zeros(((C*H*W),S)).to(device)
 for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
+k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
     save_im(train_image, image_directory, "train_kspace.png", is_kspace=True)
     train_image = fastmri.ifft2c(train_image)
@@ -174,6 +175,8 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
+            # Plot relative error
+            save_im(((im_recon.squeeze() - k_space)), image_directory, "recon_kspace_{}_error.png".format(epoch + 1), is_kspace=True)
             stats_per_coil(im_recon, C)
             im_recon = fastmri.ifft2c(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
@@ -188,8 +191,6 @@ for epoch in range(max_epoch):
             best_ssim_ep = epoch
         # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}.png".format(epoch + 1, test_psnr))
-        # Plot relative error
-        save_im((image - im_recon.squeeze()/image + 1e-9), image_directory, "recon_{}_{:.4g}_error.png".format(epoch + 1, test_psnr))
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         train_writer.add_scalar('test_ssim', test_ssim)
