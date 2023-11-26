@@ -65,7 +65,7 @@ class CenterLoss(torch.nn.Module):
         # Magnitude loss
         abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))
 
-        center_loss = torch.FloatTensor([0]) 
+        center_loss = torch.FloatTensor([0], device=device) 
         for masking_dist in range (1,6):
             masking_ratio = (masking_dist - 1) / 5.0 
             if masking_ratio == 0: masking_ratio = 0.1
@@ -76,12 +76,12 @@ class CenterLoss(torch.nn.Module):
             masked_1 = input_abs[mask_1]
             masked_2 = input_abs[mask_2]
             # Take as many as there exists in both
-            n =  min(len(masked_1), len(masked_2))
+            n =  min(1000,min(len(masked_1), len(masked_2)))
             if n == 0: continue
             diff_pred = masked_1[:n] - masked_2[:n]
             diff_gt = target_abs[mask_1][:n] - target_abs[mask_2][:n]
             # If they are close together in radial space then it doesn't matter?
-            center_loss += torch.mean((diff_pred - diff_gt)**2)
+            center_loss += ((diff_pred - diff_gt)**2).mean()
 
         # assert input.shape == target.shape
         return error_loss.mean() + abs_loss.mean() + center_loss, 0
