@@ -35,7 +35,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_rank")
+output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_cascade")
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -78,7 +78,7 @@ else:
     NotImplementedError
 
 if "pretrain" in config:
-    checkpoint = torch.load(config["pretrain"], map_location=torch.device('cpu'))
+    checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
     model.load_state_dict(checkpoint["net"])
     optim.load_state_dict(checkpoint["opt"])
     encoder.B = checkpoint["enc"]
@@ -193,7 +193,7 @@ for epoch in range(max_epoch):
         train_writer.add_scalar('test_ssim', test_ssim)
         # Must transfer to .cpu() tensor firstly for saving images
         print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g} | Test ssim: {:.4g} \n Best psnr: {:.4g} @ epoch {} | Best ssim: {:.4g} @ epoch {}"
-              .format(epoch + 1, max_epoch, test_loss, test_psnr, test_ssim, best_psnr, best_psnr_ep, best_ssim, best_ssim_ep))
+              .format(epoch + 1, max_epoch, test_running_loss / len(data_loader), test_psnr, test_ssim, best_psnr, best_psnr_ep, best_ssim, best_ssim_ep))
 
     if (epoch + 1) % config['image_save_epoch'] == 0:
         # Save final model
