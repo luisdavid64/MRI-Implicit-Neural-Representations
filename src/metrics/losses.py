@@ -46,10 +46,10 @@ class CenterLoss(torch.nn.Module):
         return dist <= percent
 
     def forward(self, input, target, kcoords):
-        error_loss = ((input - target)**2)
         input = input.to(device)
         target = target.to(device)
         kcoords = kcoords.to(device)
+        error_loss = ((input - target)**2)
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
 
         if input.dtype == torch.float:
