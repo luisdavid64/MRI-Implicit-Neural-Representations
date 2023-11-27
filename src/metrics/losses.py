@@ -60,7 +60,7 @@ class CenterLoss(torch.nn.Module):
 
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
-        abs_loss = (target_abs-input_abs)**2
+        abs_loss = ((target - input).abs()/(input.detach().abs()+self.eps))**2
         # Magnitude loss
         # abs_loss = (((target_abs.abs() - input_abs.abs()).abs())/(target_abs + 1e-9))**2
         N_BANDS=2
@@ -86,7 +86,7 @@ class CenterLoss(torch.nn.Module):
             center_loss += (((diff_gt - diff_pred))**2).mean()
 
         # assert input.shape == target.shape
-        return  error_loss.mean() + 0.2*abs_loss.mean() + 0.2*center_loss, 0
+        return  error_loss.mean() + 0.2*abs_loss.mean() + 0.1*center_loss, 0
 
         
 class LogSpaceLoss(torch.nn.Module):
