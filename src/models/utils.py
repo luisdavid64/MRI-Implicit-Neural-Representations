@@ -121,9 +121,12 @@ def psnr(x, xhat, epsilon=1e-10):
     return snrval
 
 # Save MRI image with matplotlib
-def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8):
+def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8, vmax=None, vmin=None):
     if not is_kspace:
-        plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
+        if vmin and vmax:
+            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray", vmin=vmin, vmax=vmax)
+        else:
+            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
     else:
         kspace_grid = fastmri.complex_abs(image.detach()).squeeze(dim=0)
         kspace_grid = fastmri.rss(kspace_grid, dim=0)
