@@ -45,7 +45,7 @@ class FocalFrequencyLoss(torch.nn.Module):
         batch_matrix (bool): whether to calculate the spectrum weight matrix using batch-based statistics. Default: False
     """
 
-    def __init__(self, loss_weight=1.0, alpha=1.0, log_matrix=False, batch_matrix=False):
+    def __init__(self, loss_weight=1.0, alpha=1.0, log_matrix=True, batch_matrix=False):
         super(FocalFrequencyLoss, self).__init__()
         self.loss_weight = loss_weight
         self.alpha = alpha
@@ -68,7 +68,11 @@ class FocalFrequencyLoss(torch.nn.Module):
                 matrix_tmp = torch.log(matrix_tmp + 1.0)
 
             # whether to calculate the spectrum weight matrix using batch-based statistics
-            matrix_tmp = matrix_tmp / matrix_tmp.max()
+            if self.batch_matrix:
+                matrix_tmp = matrix_tmp / matrix_tmp.max()
+            else:
+                matrix_tmp = matrix_tmp / matrix_tmp.max()
+                # matrix_tmp = matrix_tmp / matrix_tmp.max(-1).values.max(-1).values[:, :, :, None, None]
 
             matrix_tmp[torch.isnan(matrix_tmp)] = 0.0
             matrix_tmp = torch.clamp(matrix_tmp, min=0.0, max=1.0)
