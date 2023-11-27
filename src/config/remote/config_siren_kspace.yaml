@@ -6,7 +6,7 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 100000            # Batch size (320x320)
+batch_size: 400000            # Batch size (320x320)
 loss: LSL
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0001             # Weight decay
@@ -17,10 +17,11 @@ lr: 0.00008                    # Initial learning rate
 
 ############### Loss modifications ################
 loss_opts:
-  hdr_eps: 1
+  hdr_eps: 1e-1
   hdr_ff_sigma: 2 
   hdr_ff_factor: 0
-  min_sample: 1000
+  min_sample: 10000
+
 
 ################## 3D CT Image ###################
 # Model options (3D CT)
