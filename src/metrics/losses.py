@@ -59,7 +59,7 @@ class CenterLoss(torch.nn.Module):
 
         error = input - target
 
-        error_loss = (error.abs()/(input.detach().abs()+(self.eps)))**2
+        error_loss = (error)**2
 
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
@@ -85,7 +85,7 @@ class CenterLoss(torch.nn.Module):
             diff_pred = masked_1[a] - masked_2[b]
             diff_gt = target_abs[mask_1][a] - target_abs[mask_2][b]
             # If they are close together in radial space then it doesn't matter?
-            center_loss += (((diff_gt - diff_pred)/(diff_gt.abs().max()))**2).mean()
+            center_loss += (((diff_gt - diff_pred))**2).mean()
 
         # assert input.shape == target.shape
         return  error_loss.mean() + 0.5*center_loss, 0
