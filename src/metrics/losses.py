@@ -50,7 +50,8 @@ class CenterLoss(torch.nn.Module):
         input = input.to(device)
         target = target.to(device)
         kcoords = kcoords.to(device)
-        dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+        # dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+        # filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
@@ -59,36 +60,15 @@ class CenterLoss(torch.nn.Module):
 
         error = input - target
 
-        error_loss = (error.abs()/(input.detach().abs()+self.eps))**2
+        error_loss = (error.abs()/(input.detach().abs()+(self.eps)))**2
 
-        target_abs = torch.abs(target)
-        input_abs = torch.abs(input)
+        # target_abs = torch.abs(target)
+        # input_abs = torch.abs(input)
         # Magnitude loss
-        abs_loss = ((target_abs - input_abs)/(input.detach().abs()+self.eps))**2
-
-        center_loss = torch.tensor([0.0], device=device) 
-        for masking_dist in range (1,6):
-            masking_ratio = (masking_dist - 1) / 5.0 
-            if masking_ratio == 0: masking_ratio = 0.1
-            masking_ratio_2 = (masking_dist) / 5.0
-            mask_1 = self.radial_mask(dist_to_center2, masking_ratio)
-            mask_2 = self.radial_mask(dist_to_center2, masking_ratio_2)
-            mask_2 = mask_2 & ~mask_1 
-            masked_1 = input_abs[mask_1]
-            masked_2 = input_abs[mask_2]
-            # Take as many as there exists in both
-            n =  min(self.min_sample,min(len(masked_1), len(masked_2)))
-            if n == 0: continue
-            # Choose these randomly, as before we only the first
-            a = torch.randperm(masked_1.size(0))[:n]
-            b = torch.randperm(masked_2.size(0))[:n]
-            diff_pred = masked_1[a] - masked_2[b]
-            diff_gt = target_abs[mask_1][a] - target_abs[mask_2][b]
-            # If they are close together in radial space then it doesn't matter?
-            center_loss += ((diff_pred - diff_gt)**2).mean()
+        abs_loss = ((target.abs() - input.abs()))**2
 
         # assert input.shape == target.shape
-        return error_loss.mean() + abs_loss.mean() + center_loss, 0
+        return  error_loss.mean() + 0.5*abs_loss.mean(), 0
 
         
 class LogSpaceLoss(torch.nn.Module):
@@ -141,6 +121,9 @@ class HDRLoss_FF(torch.nn.Module):
         self.factor = float(config['hdr_ff_factor'])
 
     def forward(self, input, target, kcoords, weights=None, reduce=True):
+        input = input.to(device)
+        target = target.to(device)
+        kcoords = kcoords.to(device)
         # coords shape again: 
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
         filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)

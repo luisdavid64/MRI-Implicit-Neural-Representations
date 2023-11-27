@@ -1,12 +1,12 @@
 # Logger options
-log_iter: 10                 # How often to log the training loss 
+log_iter: 5                 # How often to log the training loss 
 val_epoch: 5               # How often to validate testing and save output images during training
-image_save_epoch: 20        # How often do you want to save output images during training
+image_save_epoch: 100        # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 100000            # Batch size (320x320)
+batch_size: 50000            # Batch size (320x320)
 loss: LSL
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
@@ -17,8 +17,8 @@ lr: 0.00007                    # Initial learning rate
 
 ############### Loss modifications ################
 loss_opts:
-  hdr_eps: 1e-8
-  hdr_ff_sigma: 4 
+  hdr_eps: 1
+  hdr_ff_sigma: 2 
   hdr_ff_factor: 0
   min_sample: 1000
 
