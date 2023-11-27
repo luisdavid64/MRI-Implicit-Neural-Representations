@@ -216,13 +216,13 @@ class MRIDataset(Dataset):
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
         else:
-            data = self.__normalize_per_coil(data)
             data = self.__perform_fft(data)
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
+            data = self.__normalize_per_coil(data)
             # data_abs = fastmri.complex_abs(data=data).unsqueeze(-1)
             # Attach absoltue values to end
             # data = torch.view_as_complex(data)
