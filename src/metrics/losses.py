@@ -50,8 +50,7 @@ class CenterLoss(torch.nn.Module):
         input = input.to(device)
         target = target.to(device)
         kcoords = kcoords.to(device)
-        # dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
-        # filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
+        dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
@@ -62,13 +61,34 @@ class CenterLoss(torch.nn.Module):
 
         error_loss = (error.abs()/(input.detach().abs()+(self.eps)))**2
 
-        # target_abs = torch.abs(target)
-        # input_abs = torch.abs(input)
+        target_abs = torch.abs(target)
+        input_abs = torch.abs(input)
         # Magnitude loss
-        abs_loss = ((target.abs() - input.abs()))**2
+        # abs_loss = (((target_abs.abs() - input_abs.abs()).abs())/(target_abs + 1e-9))**2
+        N_BANDS=2
+        center_loss = torch.tensor([0.0], device=device) 
+        for masking_dist in range (1,N_BANDS + 1):
+            masking_ratio = (masking_dist - 1) / N_BANDS 
+            if masking_ratio == 0: masking_ratio = 0.1
+            masking_ratio_2 = (masking_dist) / N_BANDS
+            mask_1 = self.radial_mask(dist_to_center2, masking_ratio)
+            mask_2 = self.radial_mask(dist_to_center2, masking_ratio_2)
+            mask_2 = mask_2 & ~mask_1 
+            masked_1 = input_abs[mask_1]
+            masked_2 = input_abs[mask_2]
+            # Take as many as there exists in both
+            n =  min(self.min_sample,min(len(masked_1), len(masked_2)))
+            if n == 0: continue
+            # Choose these randomly, as before we only the first
+            a = torch.randperm(masked_1.size(0))[:n]
+            b = torch.randperm(masked_2.size(0))[:n]
+            diff_pred = masked_1[a] - masked_2[b]
+            diff_gt = target_abs[mask_1][a] - target_abs[mask_2][b]
+            # If they are close together in radial space then it doesn't matter?
+            center_loss += (((diff_gt - diff_pred)/(diff_gt.abs().max()))**2).mean()
 
         # assert input.shape == target.shape
-        return  error_loss.mean() + 0.5*abs_loss.mean(), 0
+        return  error_loss.mean() + 0.5*center_loss, 0
 
         
 class LogSpaceLoss(torch.nn.Module):
