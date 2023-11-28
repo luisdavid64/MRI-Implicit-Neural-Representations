@@ -11,7 +11,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -77,6 +77,8 @@ elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
     loss_fn = HDRLoss_FF(config['loss_opts'])
+elif config['loss'] == 'tanh':
+    loss_fn = TanhL2Loss()
 else:
     NotImplementedError
 
@@ -143,7 +145,7 @@ for epoch in range(max_epoch):
         optim.zero_grad()
         train_output = model(coords)  # [bs, 2]
         train_loss = 0
-        if config['loss'] == 'HDR' or config['loss'] == "LSL":
+        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
             train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
@@ -170,7 +172,7 @@ for epoch in range(max_epoch):
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
                 test_loss = 0
-                if config['loss'] == 'HDR' or config['loss'] == "LSL" or config["loss"] == "FFL":
+                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                     test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)

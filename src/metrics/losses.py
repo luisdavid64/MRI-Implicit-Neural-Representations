@@ -94,6 +94,25 @@ class FocalFrequencyLoss(torch.nn.Module):
         # calculate focal frequency loss
         return self.loss_formulation(pred, target, matrix) * self.loss_weight
 
+class TanhL2Loss(torch.nn.Module):
+    def __init__(self, with_mag=True, rho=0.5):
+        super(TanhL2Loss, self).__init__()
+        self.with_mag = with_mag
+        self.rho = rho
+        self.sigma = 2
+    def forward(self, x, y, kcoords):
+        loss = torch.mean(torch.pow((torch.tanh(x) - torch.tanh(y)), 2))
+        # Add real and imaginary part and we get mag
+        if self.with_mag:
+            dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+            filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
+            # Control the size of the periphery
+            # reg = self.rho * (reg_error.abs()/(input.detach().abs()+self.eps))**2
+            reg = torch.mean(torch.pow((torch.tanh(x) - torch.tanh(x * filter_value)), 2))
+            loss += self.rho * reg.mean()
+
+        return loss, 0
+
 class CenterLoss(torch.nn.Module):
     """
     HDR loss function with frequency filtering (v4)

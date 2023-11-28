@@ -6,8 +6,8 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 400000            # Batch size (320x320)
-loss: LSL
+batch_size: 30000            # Batch size (320x320)
+loss: tanh
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0001             # Weight decay
 beta1: 0.9                    # Adam parameter
@@ -17,10 +17,10 @@ lr: 0.00008                    # Initial learning rate
 
 ############### Loss modifications ################
 loss_opts:
-  hdr_eps: 1e-1
+  hdr_eps: 1e-3
   hdr_ff_sigma: 2 
-  hdr_ff_factor: 0
-  min_sample: 10000
+  hdr_ff_factor: 0.5
+  min_sample: 3000
 
 
 ################## 3D CT Image ###################
@@ -48,3 +48,4 @@ slice: 0
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
+normalization: max
