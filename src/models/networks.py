@@ -92,11 +92,15 @@ class SIREN(nn.Module):
         hidden_dim = params['network_width']
         input_dim = params['network_input_size']
         output_dim = params['network_output_size']
+        last_linear = True
+        if "network_last_linear" in params:
+            last_linear = params["network_last_linear"]
+            print(last_linear)
 
         layers = [SirenLayer(input_dim, hidden_dim, is_first=True)]
         for i in range(1, num_layers - 1):
             layers.append(SirenLayer(hidden_dim, hidden_dim))
-        layers.append(SirenLayer(hidden_dim, output_dim, is_last=True))
+        layers.append(SirenLayer(hidden_dim, output_dim, is_last=last_linear))
 
         self.model = nn.Sequential(*layers)
 

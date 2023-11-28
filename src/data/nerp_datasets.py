@@ -223,14 +223,8 @@ class MRIDataset(Dataset):
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
             data = self.__normalize_per_coil(data)
-            # data_abs = fastmri.complex_abs(data=data).unsqueeze(-1)
-            # Attach absoltue values to end
-            # data = torch.view_as_complex(data)
-            # print(torch.unique(torch.eq(torch.abs(data).unsqueeze(-1),data_abs), return_counts=True))
-            # data = torch.cat((data,data_abs), dim=-1)
 
         display_tensor_stats(data, with_plot=False)
-        # display_tensor_stats(data[...,0:2])
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
         # Flatten image and grid
@@ -255,10 +249,8 @@ class MRIDataset(Dataset):
 
     @classmethod
     def __normalize_per_coil(cls, k_space):
-        # mx = fastmri.complex_abs(k_space).max().item()
-        # k_space = k_space/mx
-        max_per_coil = fastmri.complex_abs(k_space).reshape(k_space.shape[0],-1).max(dim=-1,keepdim=True)[0]
-        k_space = k_space/max_per_coil.unsqueeze(2).unsqueeze(3)
+        mx = fastmri.complex_abs(k_space).max().item()
+        k_space = k_space/mx
         return k_space
 
 
