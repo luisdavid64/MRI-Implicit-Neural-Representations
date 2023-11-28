@@ -31,7 +31,6 @@ net:
   network_output_size: 2
   network_depth: 8            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
-  network_last_linear: True  # Set to false for last layer to be sine
   last_tanh: True             # Set this to true to use a tanh layer at the end
 
 encoder:

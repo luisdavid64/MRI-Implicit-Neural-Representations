@@ -5,7 +5,7 @@ image_save_epoch: 20        # How often do you want to save output images during
 display_image_num: 8
 
 # Optimization options
-max_epoch: 1000                # Maximum number of training iterations
+max_epoch: 10000                # Maximum number of training iterations
 batch_size: 30000            # Batch size (320x320)
 loss: tanh
 optimizer: Adam               # Optimizer for trainings
@@ -32,6 +32,7 @@ net:
   network_output_size: 2
   network_depth: 8            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
+  last_tanh: True             # Set this to true to use a tanh layer at the end
 
 encoder:
   embedding: gauss            #  Input embedding method
