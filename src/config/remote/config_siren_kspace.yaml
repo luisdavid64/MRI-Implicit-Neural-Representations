@@ -9,10 +9,10 @@ max_epoch: 10000                # Maximum number of training iterations
 batch_size: 30000            # Batch size (320x320)
 loss: tanh
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0001             # Weight decay
+weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00008                    # Initial learning rate
+lr: 0.00003                    # Initial learning rate
 
 
 ############### Loss modifications ################
