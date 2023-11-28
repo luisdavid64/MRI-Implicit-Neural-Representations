@@ -190,6 +190,7 @@ class MRIDataset(Dataset):
                  custom_file_or_path = None,
                  per_coil_stats=True,
                  centercrop=(320,320),
+                 normalization="max"
                  ):
         # self.batch_size = batch_size
         self.challenge = challenge
@@ -222,7 +223,7 @@ class MRIDataset(Dataset):
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
-            data = self.__normalize_per_coil(data)
+            data = self.__normalize_per_coil(data, type=normalization)
 
         display_tensor_stats(data, with_plot=False)
         self.shape = data.shape # (Coil Dim, Height, Width)
@@ -248,9 +249,13 @@ class MRIDataset(Dataset):
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     @classmethod
-    def __normalize_per_coil(cls, k_space):
-        mx = fastmri.complex_abs(k_space).max().item()
-        k_space = k_space/mx
+    def __normalize_per_coil(cls, k_space, type="max"):
+        if type == "max":
+            mx = fastmri.complex_abs(k_space).max().item()
+            k_space = k_space/mx
+        else: 
+            mx = fastmri.complex_abs(k_space).max().item()
+            k_space = k_space/mx
         return k_space
 
 

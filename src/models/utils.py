@@ -35,10 +35,10 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False):
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max"):
     
     if data in ['brain', 'knee']:
-        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm)  #, img_dim)
+        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 

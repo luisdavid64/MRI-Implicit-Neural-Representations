@@ -115,19 +115,22 @@ class CenterLoss(torch.nn.Module):
         kcoords = kcoords.to(device)
         error_loss = ((input - target)**2)
         dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
+        filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
 
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
         if target.dtype == torch.float:
             target = torch.view_as_complex(target)
 
+        error = input - target
+        error_loss = (error.abs()/(input.detach().abs()+self.eps))**2
 
         target_abs = torch.abs(target)
         input_abs = torch.abs(input)
-        # abs_loss = ((target - input).abs()/(input.detach().abs()+self.eps))**2
-        abs_loss = (torch.log1p((target - input).abs()))**2
-        # Magnitude loss
-        # abs_loss = (((target_abs.abs() - input_abs.abs()).abs())/(target_abs + 1e-9))**2
+        abs_loss = ((target - input).abs()/(input.detach().abs()+self.eps))**2
+        reg_error = (input - input * filter_value)
+        reg = self.factor * (reg_error.abs()/(input.detach().abs()+self.eps))**2
+        #Magnitude loss
         N_BANDS=2
         center_loss = torch.tensor([0.0], device=device) 
         for masking_dist in range (1,N_BANDS + 1):
@@ -151,7 +154,7 @@ class CenterLoss(torch.nn.Module):
             center_loss += (((diff_gt - diff_pred))**2).mean()
 
         # assert input.shape == target.shape
-        return  error_loss.mean() + abs_loss.mean() + 0.1*center_loss, 0
+        return  0.1 * error_loss.mean() + 0.9 * (abs_loss.mean() + reg.mean()) + 0.1*center_loss, 0
 
         
 class LogSpaceLoss(torch.nn.Module):

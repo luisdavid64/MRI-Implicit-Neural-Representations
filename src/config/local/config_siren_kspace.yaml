@@ -6,20 +6,20 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 100000            # Batch size (320x320)
-loss: LSL
+batch_size: 30000            # Batch size (320x320)
+loss: HDR
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00007                    # Initial learning rate
+lr: 0.00003                    # Initial learning rate
 
 
 ############### Loss modifications ################
 loss_opts:
-  hdr_eps: 1e-1
+  hdr_eps: 1e-3
   hdr_ff_sigma: 2 
-  hdr_ff_factor: 0
+  hdr_ff_factor: 0.5
   min_sample: 10000
 
 ################## 3D CT Image ###################
@@ -31,6 +31,7 @@ net:
   network_output_size: 2
   network_depth: 8            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
+  network_last_linear: True  # Set to false for last layer to be sine
 
 encoder:
   embedding: gauss            #  Input embedding method
@@ -47,3 +48,4 @@ slice: 0
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
+normalization: max

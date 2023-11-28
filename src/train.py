@@ -5,6 +5,7 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch
 import torch.backends.cudnn as cudnn
 import fastmri
+from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
@@ -35,7 +36,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+output_directory = os.path.join(opts.output_path + "/outputs", model_name  + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -97,7 +98,8 @@ dataset, data_loader, val_loader = get_data_loader(
     sample=config["sample"], 
     slice=config["slice"],
     shuffle=True,
-    full_norm=config["full_norm"]
+    full_norm=config["full_norm"],
+    normalization=config["normalization"]
 )
 
 bs = config["batch_size"]
