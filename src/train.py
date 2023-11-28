@@ -35,7 +35,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name + "_cascade_log_transformed")
+output_directory = os.path.join(opts.output_path + "/outputs", model_name)
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -71,7 +71,7 @@ if config['loss'] == 'T':
 if config['loss'] == 'LSL':
     loss_fn = CenterLoss(config["loss_opts"])
 if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss()
+    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
@@ -168,7 +168,7 @@ for epoch in range(max_epoch):
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
                 test_loss = 0
-                if config['loss'] == 'HDR' or config['loss'] == "LSL":
+                if config['loss'] == 'HDR' or config['loss'] == "LSL" or config["loss"] == "FFL":
                     test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
