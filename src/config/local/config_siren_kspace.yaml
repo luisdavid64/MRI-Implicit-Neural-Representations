@@ -5,7 +5,7 @@ image_save_epoch: 100        # How often do you want to save output images durin
 display_image_num: 8
 
 # Optimization options
-max_epoch: 1000                # Maximum number of training iterations
+max_epoch: 3000                # Maximum number of training iterations
 batch_size: 3000            # Batch size (320x320)
 loss: tanh
 optimizer: Adam               # Optimizer for trainings
@@ -26,6 +26,7 @@ loss_opts:
 # Model options (3D CT)
 model: SIREN                  # Options for MLP models [FFN | SIREN]
 # pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
+pretrain: /Users/luisreyes/Courses/ADLM/learning-neural-implicit-representations-of-mri-data/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_tanh_lr3e-05_encoder_gauss_scale4_size2562023-11-28_16-26-26/checkpoints/model_001000.pt
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 2

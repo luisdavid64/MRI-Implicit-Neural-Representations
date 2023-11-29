@@ -95,7 +95,7 @@ class FocalFrequencyLoss(torch.nn.Module):
         return self.loss_formulation(pred, target, matrix) * self.loss_weight
 
 class TanhL2Loss(torch.nn.Module):
-    def __init__(self, with_mag=True, rho=0.5):
+    def __init__(self, with_mag=False, rho=0.5):
         super(TanhL2Loss, self).__init__()
         self.with_mag = with_mag
         self.rho = rho
@@ -104,13 +104,11 @@ class TanhL2Loss(torch.nn.Module):
         loss = torch.mean(torch.pow((torch.tanh(x) - torch.tanh(y)), 2))
         # Add real and imaginary part and we get mag
         if self.with_mag:
-            dist_to_center2 = kcoords[...,1]**2 + kcoords[...,2]**2
-            filter_value = torch.exp(-dist_to_center2/(2*self.sigma**2)).unsqueeze(-1)
             # Control the size of the periphery
-            # reg = self.rho * (reg_error.abs()/(input.detach().abs()+self.eps))**2
-            reg = torch.mean(torch.pow((torch.tanh(x) - torch.tanh(x * filter_value)), 2))
-            loss += self.rho * reg.mean()
-
+            xabs = torch.sqrt(x[...,0]**2 + x[...,1]**2)
+            yabs = torch.sqrt(y[...,0]**2 + y[...,1]**2)
+            reg = torch.mean(torch.pow((torch.tanh(xabs) - torch.tanh(yabs)), 2))
+            loss += self.rho * reg 
         return loss, 0
 
 class CenterLoss(torch.nn.Module):
@@ -242,7 +240,8 @@ class HDRLoss_FF(torch.nn.Module):
         error = input - target
         # error = error * filter_value
 
-        loss = (error.abs()/(input.detach().abs()+self.eps))**2
+        # loss = (error.abs()/(input.detach().abs()+self.eps))**2
+        loss = torch.log(error.abs()/(input.detach().abs()+self.eps))**2
         if weights is not None:
             loss = loss * weights.unsqueeze(-1)
 
