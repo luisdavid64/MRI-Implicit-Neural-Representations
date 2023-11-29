@@ -25,8 +25,7 @@ loss_opts:
 ################## 3D CT Image ###################
 # Model options (3D CT)
 model: SIREN                  # Options for MLP models [FFN | SIREN]
-# pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
-pretrain: /Users/luisreyes/Courses/ADLM/learning-neural-implicit-representations-of-mri-data/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_tanh_lr3e-05_encoder_gauss_scale4_size2562023-11-28_16-26-26/checkpoints/model_001000.pt
+# pretrain: /Users/luisreyes/Courses/ADLM/learning-neural-implicit-representations-of-mri-data/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_tanh_lr3e-05_encoder_gauss_scale4_size2562023-11-28_16-26-26/checkpoints/model_001000.pt
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 2
@@ -36,7 +35,7 @@ net:
 
 encoder:
   embedding: gauss            #  Input embedding method
-  scale: 4
+  scale: 32
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3 
 
