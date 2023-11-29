@@ -108,8 +108,9 @@ def complex_center_crop(data, shape):
 def normalize_image(data, full_norm=False):
     
     C,_,_,_ = data.shape
-    data_flat = data.reshape(C,-1)
-    norm = torch.abs(data_flat).max()
+    # data_flat = data.reshape(C,-1)
+    # norm = torch.abs(data_flat).max()
+    norm = fastmri.complex_abs(data).max()
     return data/norm 
     
 def create_grid_3d(c, h, w):
@@ -128,7 +129,14 @@ def create_coords(c, h, w):
                             X.reshape(-1, 1)))
     return grid
 
-def display_tensor_stats(tensor):
+def display_tensor_stats(tensor, with_plot=False):
+    if with_plot:
+        plt.boxplot(torch.view_as_complex(tensor).abs().reshape(-1), vert=False)  # vert=False makes it a horizontal boxplot
+        plt.title('Plot of K-space')
+        plt.xlabel('Value')
+        plt.ylabel('Frequency')
+        # Show the plot
+        plt.show()
     shape, vmin, vmax, vmean, vstd = tensor.shape, tensor.min(), tensor.max(), torch.mean(tensor), torch.std(tensor)
     print('shape:{} | min:{:.5f} | max:{:.5f} | mean:{:.5f} | std:{:.5f}'.format(shape, vmin, vmax, vmean, vstd))
 
@@ -182,6 +190,7 @@ class MRIDataset(Dataset):
                  custom_file_or_path = None,
                  per_coil_stats=True,
                  centercrop=(320,320),
+                 normalization="max"
                  ):
         # self.batch_size = batch_size
         self.challenge = challenge
@@ -212,11 +221,11 @@ class MRIDataset(Dataset):
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, centercrop)
-            # data = normalize_image(data=data, full_norm=full_norm)
+            data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
-            data = self.__normalize_per_coil(data)
+            data = self.__normalize_per_coil(data, type=normalization)
 
-        display_tensor_stats(data)
+        display_tensor_stats(data, with_plot=False)
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
         # Flatten image and grid
@@ -240,11 +249,13 @@ class MRIDataset(Dataset):
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     @classmethod
-    def __normalize_per_coil(cls, k_space):
-        for coil in range(k_space.shape[0]):
-            mx = torch.abs(k_space[coil,...]).max().item()
-            print(k_space[coil,...].shape)
-            k_space[coil,...] =  k_space[coil,...]/mx
+    def __normalize_per_coil(cls, k_space, type="max"):
+        if type == "max":
+            mx = fastmri.complex_abs(k_space).max().item()
+            k_space = k_space/mx
+        else: 
+            mx = fastmri.complex_abs(k_space).max().item()
+            k_space = k_space/mx
         return k_space
 
 

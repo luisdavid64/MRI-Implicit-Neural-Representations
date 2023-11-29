@@ -5,11 +5,13 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch
 import torch.backends.cudnn as cudnn
 import fastmri
+from datetime import datetime
+from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
-from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im
-from metrics.losses import HDRLoss_FF
+from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -21,6 +23,7 @@ config = get_config(opts.config)
 max_epoch = config['max_epoch']
 in_image_space = config["transform"]
 device = get_device(config["model"])
+print(device)
 cudnn.benchmark = True
 
 # Setup output folder
@@ -34,7 +37,7 @@ if not(config['encoder']['embedding'] == 'none'):
 print(model_name)
 
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name)
+output_directory = os.path.join(opts.output_path + "/outputs", model_name  + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -65,13 +68,26 @@ else:
 # Setup loss functions
 if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
+if config['loss'] == 'T':
+    loss_fn = TLoss()
+if config['loss'] == 'LSL':
+    loss_fn = CenterLoss(config["loss_opts"])
+if config['loss'] == 'FFL':
+    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
     loss_fn = HDRLoss_FF(config['loss_opts'])
+elif config['loss'] == 'tanh':
+    loss_fn = TanhL2Loss()
 else:
     NotImplementedError
 
+if "pretrain" in config:
+    checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
+    model.load_state_dict(checkpoint["net"])
+    optim.load_state_dict(checkpoint["opt"])
+    encoder.B = checkpoint["enc"]
 
 # Setup data loader
 # The only difference of val loader is that data is not shuffled
@@ -85,7 +101,8 @@ dataset, data_loader, val_loader = get_data_loader(
     sample=config["sample"], 
     slice=config["slice"],
     shuffle=True,
-    full_norm=config["full_norm"]
+    full_norm=config["full_norm"],
+    normalization=config["normalization"]
 )
 
 bs = config["batch_size"]
@@ -98,6 +115,7 @@ train_image = torch.zeros(((C*H*W),S)).to(device)
 for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
+k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
     save_im(train_image, image_directory, "train_kspace.png", is_kspace=True)
     train_image = fastmri.ifft2c(train_image)
@@ -128,7 +146,7 @@ for epoch in range(max_epoch):
         optim.zero_grad()
         train_output = model(coords)  # [bs, 2]
         train_loss = 0
-        if config['loss'] == 'HDR':
+        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
             train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
@@ -148,14 +166,14 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in enumerate(val_loader):
+            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 test_output = model(coords)  # [bs, 2]
                 test_loss = 0
-                if config['loss'] == 'HDR':
+                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                     test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
@@ -164,6 +182,9 @@ for epoch in range(max_epoch):
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
+            # Plot relative error
+            save_im(((im_recon.squeeze() - k_space)), image_directory, "recon_kspace_{}_error.png".format(epoch + 1), is_kspace=True)
+            stats_per_coil(im_recon, C)
             im_recon = fastmri.ifft2c(im_recon)
         im_recon = fastmri.complex_abs(im_recon)
         im_recon = fastmri.rss(im_recon, dim=0)
@@ -176,13 +197,13 @@ for epoch in range(max_epoch):
             best_ssim = test_ssim
             best_ssim_ep = epoch
         # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
-        save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr))
+        save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}.png".format(epoch + 1, test_psnr))
         train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
         train_writer.add_scalar('test_psnr', test_psnr)
         train_writer.add_scalar('test_ssim', test_ssim)
         # Must transfer to .cpu() tensor firstly for saving images
         print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g} | Test ssim: {:.4g} \n Best psnr: {:.4g} @ epoch {} | Best ssim: {:.4g} @ epoch {}"
-              .format(epoch + 1, max_epoch, test_loss, test_psnr, test_ssim, best_psnr, best_psnr_ep, best_ssim, best_ssim_ep))
+              .format(epoch + 1, max_epoch, test_running_loss / len(data_loader), test_psnr, test_ssim, best_psnr, best_psnr_ep, best_ssim, best_ssim_ep))
 
     if (epoch + 1) % config['image_save_epoch'] == 0:
         # Save final model

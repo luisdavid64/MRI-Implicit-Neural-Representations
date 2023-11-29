@@ -3,7 +3,7 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
-
+from tabulate import tabulate
 from data.nerp_datasets import MRIDataset
 from skimage.metrics import structural_similarity
 import numpy as np
@@ -35,10 +35,10 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False):
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max"):
     
     if data in ['brain', 'knee']:
-        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm)  #, img_dim)
+        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
 
     loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
@@ -101,7 +101,8 @@ def ssim(x, xhat):
         x = x.numpy()
     if torch.is_tensor(xhat):
         xhat = xhat.numpy()
-    return structural_similarity(x,xhat, data_range=xhat.max()-xhat.min())
+    data_range = np.maximum(x.max(), xhat.max()) - np.minimum(x.min(), xhat.min())
+    return structural_similarity(x,xhat, data_range=data_range)
 
 def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
@@ -120,9 +121,12 @@ def psnr(x, xhat, epsilon=1e-10):
     return snrval
 
 # Save MRI image with matplotlib
-def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8):
+def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8, vmax=None, vmin=None):
     if not is_kspace:
-        plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
+        if vmin and vmax:
+            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray", vmin=vmin, vmax=vmax)
+        else:
+            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
     else:
         kspace_grid = fastmri.complex_abs(image.detach()).squeeze(dim=0)
         kspace_grid = fastmri.rss(kspace_grid, dim=0)
@@ -131,7 +135,21 @@ def save_im(image, image_directory, image_name, is_kspace=False, smoothing_facto
         kspace_grid = torch.log1p(kspace_grid)  # Adds 1 to input for natural log.
         kspace_grid /= kspace_grid.max()  # Standardization to 0~1 range.
         kspace_grid = kspace_grid.squeeze().to(device='cpu', non_blocking=True)
-        print(kspace_grid.shape)
         plt.imsave(os.path.join(image_directory, image_name), kspace_grid.numpy(), format="png", cmap="gray")
 
     plt.clf()
+
+def stats_per_coil(im_recon, C):
+    stats_coil = []
+    for i in range(C):
+        mean = (im_recon[i,:,:,:].mean())
+        std = (im_recon[i,:,:,:].std())
+        max = (im_recon[i,:,:,:].max())
+        min = (im_recon[i,:,:,:].min())
+        stats_coil.append(
+            (i, mean, std, max, min)
+        )
+    headers = ["coil", "mean", "std", "max", "min"]
+    table = tabulate(stats_coil, headers=headers)
+    title = "{} Reconstruction Statistics Per Coil".format("K-space")
+    print("{}\n{}".format(title,table))

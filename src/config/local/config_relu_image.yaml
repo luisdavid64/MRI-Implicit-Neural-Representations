@@ -17,7 +17,7 @@ lr: 0.0005                     # Initial learning rate
 
 ################## 3D CT Image ###################
 # Model options (3D CT)
-model: SIREN                # Options for MLP models [FFN | SIREN]
+model: FFN                # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 2 
