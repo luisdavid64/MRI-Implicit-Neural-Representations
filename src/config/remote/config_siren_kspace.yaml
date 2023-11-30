@@ -36,7 +36,7 @@ net:
 
 encoder:
   embedding: gauss            #  Input embedding method
-  scale: 2
+  scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3 
 
