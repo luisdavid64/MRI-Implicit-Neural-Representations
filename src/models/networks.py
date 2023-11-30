@@ -84,7 +84,7 @@ class SirenLayer(nn.Module):
         x = self.linear(x)
         # Use tanh to squeeze output to -1,1
         if self.last_tanh:
-            return torch.nn.functional.tanh(x)
+            return torch.tanh(x)
         return x if self.is_last else torch.sin(self.w0 * x)
 
 
