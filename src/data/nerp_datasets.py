@@ -9,58 +9,47 @@ from fastmri.data import transforms as T
 from matplotlib import pyplot as plt
 import os
 from tabulate import tabulate
+import xml.etree.ElementTree as etree
+from typing import (
+    Sequence,
+)
+
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-def extract_smaps(kspace, low_freq_percentage=8):
-    """Extract raw sensitivity maps for kspaces
+def et_query(
+    root: etree.Element,
+    qlist: Sequence[str],
+    namespace: str = "http://www.ismrm.org/ISMRMRD",
+) -> str:
+    """
+    ElementTree query function.
 
-    This function will first select a low frequency region in all the kspaces,
-    then Fourier invert it, and finally perform a normalization by the root
-    sum-of-square.
-    kspace has to be of shape: nslices x ncoils x height x width
+    This can be used to query an xml document via ElementTree. It uses qlist
+    for nested queries.
 
-    Arguments:
-        kspace (torch.Tensor): the kspace whose sensitivity maps you want extracted.
-        low_freq_percentage (int): the low frequency region to consider for
-            sensitivity maps extraction, given as a percentage of the width of
-            the kspace. In fastMRI, it's 8 for an acceleration factor of 4, and
-            4 for an acceleration factor of 8. Defaults to 8.
+    Args:
+        root: Root of the xml to search through.
+        qlist: A list of strings for nested searches, e.g. ["Encoding",
+            "matrixSize"]
+        namespace: Optional; xml namespace to prepend query.
 
     Returns:
-        torch.Tensor: extracted raw sensitivity maps.
+        The retrieved data as a string.
     """
-    k_shape = torch.tensor(kspace.shape[-2:])
-    n_low_freq = torch.tensor(k_shape * low_freq_percentage / 100, dtype=torch.int32)
-    center_dimension = torch.tensor(k_shape / 2, dtype=torch.int32)
-    low_freq_lower_locations = center_dimension - n_low_freq // 2
-    low_freq_upper_locations = center_dimension + n_low_freq // 2
-    
-    ### Masking strategy
-    x_range = torch.arange(0, k_shape[0])
-    y_range = torch.arange(0, k_shape[1])
-    X_range, Y_range = torch.meshgrid(x_range, y_range)
-    X_mask = (X_range <= low_freq_upper_locations[0]) & (X_range >= low_freq_lower_locations[0])
-    Y_mask = (Y_range <= low_freq_upper_locations[1]) & (Y_range >= low_freq_lower_locations[1])
-    low_freq_mask = torch.transpose(X_mask & Y_mask, 0, 1).unsqueeze(0).unsqueeze(0)
-    low_freq_mask = low_freq_mask.expand_as(kspace)
-    ###
-    
-    low_freq_kspace  = kspace * low_freq_mask.to(kspace.dtype)
-    
-    # Assuming ortho_ifft2d is a function performing 2D Inverse Fourier Transform
-    # You might need to replace this with the PyTorch equivalent
-    # (e.g., torch.fft.ifft2 or torch.fft.ifftn)
-    coil_image_low_freq = fastmri.ifft2(low_freq_kspace)
-    
-    # no need to norm this since they all have the same norm
-    low_freq_rss = torch.norm(coil_image_low_freq, dim=1)
-    coil_smap = coil_image_low_freq / low_freq_rss.unsqueeze(1)
-    
-    # for now, we do not perform background removal based on low_freq_rss
-    # could be done with 1D k-means or fixed background_thresh, with torch.where
-    
-    return coil_smap
+    s = "."
+    prefix = "ismrmrd_namespace"
+
+    ns = {prefix: namespace}
+
+    for el in qlist:
+        s = s + f"//{prefix}:{el}"
+
+    value = root.find(s, ns)
+    if value is None:
+        raise RuntimeError("Element not found")
+
+    return str(value.text)
 
 
 def complex_center_crop(data, shape):
@@ -172,7 +161,7 @@ class MRIDataset(Dataset):
                  full_norm=False, 
                  custom_file_or_path = None,
                  per_coil_stats=True,
-                 centercrop=(320,320),
+                 centercrop=True,
                  normalization="max"
                  ):
         # self.batch_size = batch_size
@@ -189,7 +178,7 @@ class MRIDataset(Dataset):
 
 
         # Load single image
-        data = self.__load_files(self.root, sample)
+        data, crop_size = self.__load_files(self.root, sample)
 
         # Choose a slice
         data = data[slice]
@@ -197,13 +186,13 @@ class MRIDataset(Dataset):
         if self.transform:
             data = self.__perform_fft(data)
             if centercrop:
-                data = complex_center_crop(data, centercrop)
+                data = complex_center_crop(data, crop_size)
             data = normalize_image(data=data, full_norm=full_norm)
         else:
             data = self.__perform_fft(data)
             # Normalize data in image space
             if centercrop:
-                data = complex_center_crop(data, centercrop)
+                data = complex_center_crop(data, crop_size)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
             data = self.__normalize_kspace(data, type=normalization)
@@ -254,6 +243,17 @@ class MRIDataset(Dataset):
 
         transformed = fastmri.ifft2c(k_space)
         return transformed
+
+    @classmethod
+    def retrieve_size(self, file):
+        et_root = etree.fromstring(file["ismrmrd_header"][()])
+        rec = ["encoding", "reconSpace", "matrixSize"]
+        recon_size = (
+            int(et_query(et_root, rec + ["x"])),
+            int(et_query(et_root, rec + ["y"])),
+            int(et_query(et_root, rec + ["z"])),
+        )
+        return recon_size
     
     @classmethod
     def __load_files(cls, path_or_file, load_only_one_path_idx=None):
@@ -267,10 +267,11 @@ class MRIDataset(Dataset):
             # then we can assume that it is single file
             file = h5py.File(path_or_file, 'r')
             data = file['kspace'][()]
+            crop_size = cls.retrieve_size(file) 
             file.close()
 
             cls.file_name = Path(path_or_file)
-            return data
+            return data, crop_size
         else:
             # Then it is path
 
@@ -299,12 +300,14 @@ class MRIDataset(Dataset):
                 cls.file_name = file_path
 
                 file = h5py.File(file_path.resolve(), 'r')
+                crop_size = cls.retrieve_size(file) 
                 data = file['kspace'][()]
                 file.close()
-                return data
+                return data, crop_size
             else:
                 # if we want to load all files
                 raise NotImplementedError("Multi path loading is not currently supported yet")
+
 
     @property
     def file(self):
