@@ -78,8 +78,8 @@ def complex_center_crop(data, shape):
         torch.Tensor: The center cropped image
     """
     # Make sure crop fits one dimension at least
-    if data.shape[-2] < crop_size[1]:
-        crop_size = (data.shape[-2], data.shape[-2])
+    if data.shape[-2] < shape[1]:
+        shape = (data.shape[-2], data.shape[-2])
     assert 0 < shape[0] <= data.shape[-3]
     assert 0 < shape[1] <= data.shape[-2]
     w_from = (data.shape[-3] - shape[0]) // 2
@@ -203,7 +203,6 @@ class MRIDataset(Dataset):
             data = self.__perform_fft(data)
             # Normalize data in image space
             if centercrop:
-                print("This happened")
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
