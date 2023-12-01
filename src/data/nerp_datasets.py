@@ -249,13 +249,17 @@ class MRIDataset(Dataset):
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     @classmethod
-    def __normalize_kspace(cls, k_space, type="max"):
+    def __normalize_kspace(cls, k_space, type="max", eps=1e-9):
         if type == "max":
             mx = fastmri.complex_abs(k_space).max().item()
             k_space = k_space/mx
         elif type == "coil": 
             max_per_coil = fastmri.complex_abs(k_space).reshape(k_space.shape[0],-1).max(dim=-1,keepdim=True)[0]
             k_space = k_space/max_per_coil.unsqueeze(2).unsqueeze(3)
+        elif type == "stand":
+            mean = k_space.mean()
+            std = k_space.std()
+            k_space = (k_space - mean)/ (std + eps)
  
         # Else: no normalization
         return k_space

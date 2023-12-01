@@ -79,6 +79,9 @@ class WIRE2D(nn.Module):
         first_omega_0 = params["first_omega_0"]
         hidden_omega_0 = params["hidden_omega_0"]
         scale = params["scale"]
+        last_tanh = False
+        if "last_tanh" in params:
+            last_tanh = params["last_tanh"]
         
         # Legacy parameter
         self.net = []
@@ -99,6 +102,10 @@ class WIRE2D(nn.Module):
                                  out_features,
                                  dtype=dtype)            
         self.net.append(final_linear)
+
+        if last_tanh:
+            self.net.append(torch.nn.Tanh())
+        
         
         self.net = nn.Sequential(*self.net)
     
