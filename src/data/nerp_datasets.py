@@ -12,26 +12,6 @@ from tabulate import tabulate
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-def complex_center_crop(data, shape):
-    """
-    Apply a center crop to the input image or batch of complex images.
-    Args:
-        data (torch.Tensor): The complex input tensor to be center cropped. It should
-            have at least 3 dimensions and the cropping is applied along dimensions
-            -3 and -2 and the last dimensions should have a size of 2.
-        shape (int, int): The output shape. The shape should be smaller than the
-            corresponding dimensions of data.
-    Returns:
-        torch.Tensor: The center cropped image
-    """
-    assert 0 < shape[0] <= data.shape[-3]
-    assert 0 < shape[1] <= data.shape[-2]
-    w_from = (data.shape[-3] - shape[0]) // 2
-    h_from = (data.shape[-2] - shape[1]) // 2
-    w_to = w_from + shape[0]
-    h_to = h_from + shape[1]
-    return data[..., w_from:w_to, h_from:h_to, :]
-
 def extract_smaps(kspace, low_freq_percentage=8):
     """Extract raw sensitivity maps for kspaces
 
@@ -97,6 +77,9 @@ def complex_center_crop(data, shape):
     Returns:
         torch.Tensor: The center cropped image
     """
+    # Make sure crop fits one dimension at least
+    if data.shape[-2] < crop_size[1]:
+        crop_size = (data.shape[-2], data.shape[-2])
     assert 0 < shape[0] <= data.shape[-3]
     assert 0 < shape[1] <= data.shape[-2]
     w_from = (data.shape[-3] - shape[0]) // 2
@@ -220,6 +203,7 @@ class MRIDataset(Dataset):
             data = self.__perform_fft(data)
             # Normalize data in image space
             if centercrop:
+                print("This happened")
                 data = complex_center_crop(data, centercrop)
             data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
