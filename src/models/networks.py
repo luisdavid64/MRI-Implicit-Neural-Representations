@@ -10,8 +10,12 @@ class Positional_Encoder():
     def __init__(self, params, device):
         self.device = device
         self.B = None
+        self.embedding_type = params["embedding"]
         if params['embedding'] == 'gauss':
             self.B = torch.randn((params['embedding_size'], params['coordinates_size'])) * params['scale']
+            self.B = self.B.to(device)
+        elif params['embedding'] == "LogF":
+            self.B = 2.**torch.linspace(0., params["scale"], steps=int(params["embedding_size"]/(2*params["coordinates_size"]))).reshape(-1,1)
             self.B = self.B.to(device)
         elif params["embedding"] == 'none':
             pass
@@ -19,6 +23,12 @@ class Positional_Encoder():
             raise NotImplementedError
 
     def embedding(self, x):
+        if self.embedding_type == "LogF":
+            emb1 = torch.cat((torch.sin((2.*np.pi*x[:,:1]) @ self.B.T),torch.cos((2.*np.pi*x[:,:1]) @ self.B.T)),dim=-1)
+            emb2 = torch.cat((torch.sin((2.*np.pi*x[:,1:2]) @ self.B.T),torch.cos((2.*np.pi*x[:,1:2]) @ self.B.T)),1)
+            emb3 = torch.cat((torch.sin((2.*np.pi*x[:,2:3]) @ self.B.T),torch.cos((2.*np.pi*x[:,2:3]) @ self.B.T)),1)
+            x_embedding = torch.cat([emb1,emb2,emb3],dim=-1)
+            return x_embedding
         if self.B is not None:
             x_embedding = (2. * np.pi * x) @ self.B.t()
             x_embedding = torch.cat([torch.sin(x_embedding), torch.cos(x_embedding)], dim=-1)
@@ -84,7 +94,7 @@ class SirenLayer(nn.Module):
         x = self.linear(x)
         # Use tanh to squeeze output to -1,1
         if self.last_tanh:
-            return torch.nn.functional.tanh(x)
+            return torch.tanh(x)
         return x if self.is_last else torch.sin(self.w0 * x)
 
 
