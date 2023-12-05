@@ -12,6 +12,7 @@ from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from math import sqrt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -152,7 +153,7 @@ for epoch in range(max_epoch):
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
-        dist_to_center = (kcoords[...,1]**2 + kcoords[...,2]**2)
+        dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -162,23 +163,23 @@ for epoch in range(max_epoch):
             if i == 0:
                 r_0 = 0
             else:
-                r_0 = 2*(i)/no_models
+                r_0 = sqrt(2)*(i)/no_models
             if i == no_models:
-                r_1 = 2
+                r_1 = sqrt(2)
             else:
-                r_1 = 2*(i + 1)/no_models
+                r_1 = sqrt(2)*(i + 1)/no_models
             ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
-            coords_local = coords[ind]
-            gt_local = gt[ind]
-            train_output = model[i](coords_local)
-            train_loss = 0
-            if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                train_loss, _ = loss_fn(train_output, gt_local, kcoords.to(device))
-            else:
-                train_loss = 0.5 * loss_fn(train_output, gt_local)
-            train_loss.backward()
-        for o in optim:
-            o.step()
+            if ind[0].numel():
+                coords_local = coords[ind]
+                gt_local = gt[ind]
+                train_output = model[i](coords_local)
+                train_loss = 0
+                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                    train_loss, _ = loss_fn(train_output, gt_local, kcoords.to(device))
+                else:
+                    train_loss = 0.5 * loss_fn(train_output, gt_local)
+                train_loss.backward()
+            optim[i].step()
 
         running_loss += train_loss.item()
 
@@ -195,7 +196,7 @@ for epoch in range(max_epoch):
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
-                dist_to_center = (kcoords[...,1]**2 + kcoords[...,2]**2)
+                dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -204,22 +205,23 @@ for epoch in range(max_epoch):
                     if i == 0:
                         r_0 = 0
                     else:
-                        r_0 = 2*(i)/no_models
+                        r_0 = sqrt(2)*(i)/no_models
                     if i == no_models:
-                        r_1 = 2
+                        r_1 = sqrt(2)
                     else:
-                        r_1 = 2*(i + 1)/no_models
+                        r_1 = sqrt(2)*(i + 1)/no_models
                     ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
-                    coords_local = coords[ind]
-                    gt_local = gt[ind]
-                    test_output = model[i](coords_local)
-                    test_loss = 0
-                    if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                        test_loss, _ = loss_fn(test_output, gt_local, kcoords.to(device))
-                    else:
-                        test_loss = 0.5 * loss_fn(test_output, gt_local)
-                    test_running_loss += test_loss.item()
-                    batch_rec[ind] = test_output
+                    if ind[0].numel():
+                        coords_local = coords[ind]
+                        gt_local = gt[ind]
+                        test_output = model[i](coords_local)
+                        test_loss = 0
+                        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                            test_loss, _ = loss_fn(test_output, gt_local, kcoords.to(device))
+                        else:
+                            test_loss = 0.5 * loss_fn(test_output, gt_local)
+                        test_running_loss += test_loss.item()
+                        batch_rec[ind] = test_output
                 im_recon[it*bs:(it+1)*bs, :] = batch_rec
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:

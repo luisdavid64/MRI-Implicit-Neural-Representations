@@ -42,7 +42,7 @@ encoder:
 
 # Data
 data: brain # or knee
-data_root: data
+data_root: /local_ssd/practical_wise24/implicit_neural_representations 
 set: train
 slice: 0
 sample: 0
