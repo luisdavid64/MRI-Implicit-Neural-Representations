@@ -164,7 +164,7 @@ for epoch in range(max_epoch):
                 r_0 = 0
             else:
                 r_0 = sqrt(2)*(i)/no_models
-            if i == no_models:
+            if i == no_models - 1:
                 r_1 = sqrt(2)
             else:
                 r_1 = sqrt(2)*(i + 1)/no_models
@@ -206,7 +206,7 @@ for epoch in range(max_epoch):
                         r_0 = 0
                     else:
                         r_0 = sqrt(2)*(i)/no_models
-                    if i == no_models:
+                    if i == no_models - 1:
                         r_1 = sqrt(2)
                     else:
                         r_1 = sqrt(2)*(i + 1)/no_models
