@@ -10,10 +10,32 @@ from matplotlib import pyplot as plt
 import os
 from tabulate import tabulate
 import xml.etree.ElementTree as etree
+from torchvision.transforms.functional import equalize
 from typing import (
     Sequence,
 )
+from math import ceil
+from torch.distributions import Normal
 
+
+def gaussian_kernel_1d(sigma: float, num_sigmas: float = 10.) -> torch.Tensor:
+    
+    radius = ceil(num_sigmas * sigma)
+    support = torch.arange(-radius, radius + 1, dtype=torch.float)
+    kernel = Normal(loc=0, scale=sigma).log_prob(support).exp_()
+    # Ensure kernel weights sum to 1, so that image brightness is not altered
+    return kernel.mul_(1 / kernel.sum())
+
+def gaussian_filter_2d(img: torch.Tensor, sigma: float) -> torch.Tensor:
+    
+    kernel_1d = gaussian_kernel_1d(sigma)  # Create 1D Gaussian kernel
+    
+    padding = len(kernel_1d) // 2  # Ensure that image size does not change
+    img = img  # Need 4D data for ``conv2d()``
+    # Convolve along columns and rows
+    img = torch.nn.functional.conv2d(img, weight=kernel_1d.view(1, 1, -1, 1), padding=(padding, 0))
+    img = torch.nn.functional.conv2d(img, weight=kernel_1d.view(1, 1, 1, -1), padding=(0, padding))
+    return img  # Make 2D again
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -193,7 +215,7 @@ class MRIDataset(Dataset):
             # Normalize data in image space
             if centercrop:
                 data = complex_center_crop(data, crop_size)
-            data = normalize_image(data=data, full_norm=full_norm)
+            # data = normalize_image(data=data, full_norm=full_norm)
             data = fastmri.fft2c(data=data)
             data = self.__normalize_kspace(data, type=normalization)
 
@@ -222,9 +244,31 @@ class MRIDataset(Dataset):
 
     @classmethod
     def __normalize_kspace(cls, k_space, type="max", eps=1e-9):
-        if type == "max":
+        print(type)
+        if type == "abs_max":
             mx = fastmri.complex_abs(k_space).max().item()
             k_space = k_space/mx
+        elif type == "max":
+            mx = torch.abs(k_space).max().item()
+            k_space = k_space/mx
+        elif type == "gaussian_blur":
+            mx = torch.abs(k_space).max().item()
+            k_space = k_space/mx
+            k_space = k_space.permute(0,3,1,2)
+            for i in range(k_space.shape[1]):
+                k_space[:,i:i+1,...] = gaussian_filter_2d(k_space[:,i:i+1,...], 0.1)
+            k_space = k_space.permute(0,2,3,1)
+        elif type == "max_std":
+            mx = torch.abs(k_space).max().item()
+            k_space = k_space/mx
+            k_space = (k_space - k_space.mean()) / k_space.std()
+            # Renormalize to 1
+            k_space = k_space/k_space.max()
+        elif type == "tonemap":
+            k_space = k_space / ((k_space + 1))
+            k_space = k_space / k_space.max().item()
+            mu = k_space.mean(dim=(1,2,3),keepdim=True)
+            k_space = k_space - mu
         elif type == "coil": 
             max_per_coil = fastmri.complex_abs(k_space).reshape(k_space.shape[0],-1).max(dim=-1,keepdim=True)[0]
             k_space = k_space/max_per_coil.unsqueeze(2).unsqueeze(3)
@@ -247,12 +291,24 @@ class MRIDataset(Dataset):
     @classmethod
     def retrieve_size(self, file):
         et_root = etree.fromstring(file["ismrmrd_header"][()])
+        enc = ["encoding", "encodedSpace", "matrixSize"]
+        enc_size = (
+            int(et_query(et_root, enc + ["x"])),
+            int(et_query(et_root, enc + ["y"])),
+            int(et_query(et_root, enc + ["z"])),
+        )
         rec = ["encoding", "reconSpace", "matrixSize"]
         recon_size = (
             int(et_query(et_root, rec + ["x"])),
             int(et_query(et_root, rec + ["y"])),
             int(et_query(et_root, rec + ["z"])),
         )
+
+        lims = ["encoding", "encodingLimits", "kspace_encoding_step_1"]
+        enc_limits_center = int(et_query(et_root, lims + ["center"]))
+        enc_limits_max = int(et_query(et_root, lims + ["maximum"])) + 1
+        padding_left = enc_size[1] // 2 - enc_limits_center
+        padding_right = padding_left + enc_limits_max
         return recon_size
     
     @classmethod
