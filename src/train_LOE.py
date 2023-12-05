@@ -44,13 +44,14 @@ shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy c
 
 # Setup input encoder:
 encoder = Positional_Encoder(config['encoder'], device=device)
+no_models = 4
 
 # Setup model
 if config['model'] == 'SIREN':
     # 0.5% radial distance
-    model_center = SIREN(config['net'])
-    model_periphery = SIREN(config['net'])
-    model = [model_center,model_periphery]
+    model = []
+    for i in range(no_models):
+        model.append(SIREN(config['net']))
 elif config['model'] == 'WIRE':
     model = WIRE(config['net'])
 elif config['model'] == 'WIRE2D':
@@ -66,9 +67,9 @@ for m in model:
 
 # Setup optimizer
 if config['optimizer'] == 'Adam':
-    optim_center = torch.optim.Adam(model[0].parameters(), lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
-    optim_periphery = torch.optim.Adam(model[1].parameters(), lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
-    optim = [optim_center,optim_periphery]
+    optim = []
+    for i in range(no_models):
+        optim.append(torch.optim.Adam(model[i].parameters(), lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay']))
 else:
     NotImplementedError
 
@@ -139,9 +140,9 @@ best_psnr_ep = 0
 best_ssim = -1
 best_ssim_ep = 0
 
-scheduler_center = LambdaLR(optim[0], lambda x: 0.2**min(x/max_epoch, 1))
-scheduler_periphery = LambdaLR(optim[1], lambda x: 0.2**min(x/max_epoch, 1))
-scheduler = [scheduler_center, scheduler_periphery]
+scheduler = []
+for i in range(no_models):
+    scheduler.append(LambdaLR(optim[i], lambda x: 0.2**min(x/max_epoch, 1)))
 print('Training for {} epochs'.format(max_epoch))
 no_models = len(model)
 for epoch in range(max_epoch):
@@ -151,7 +152,7 @@ for epoch in range(max_epoch):
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
-        dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+        dist_to_center = (kcoords[...,1]**2 + kcoords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -194,7 +195,7 @@ for epoch in range(max_epoch):
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
-                dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+                dist_to_center = (kcoords[...,1]**2 + kcoords[...,2]**2)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
