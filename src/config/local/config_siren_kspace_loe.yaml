@@ -1,11 +1,11 @@
 # Logger options
 log_iter: 5                 # How often to log the training loss 
 val_epoch: 5               # How often to validate testing and save output images during training
-image_save_epoch: 100        # How often do you want to save output images during training
+image_save_epoch: 400        # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
-max_epoch: 3000                # Maximum number of training iterations
+max_epoch: 1000                # Maximum number of training iterations
 batch_size: 60000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
@@ -41,10 +41,10 @@ encoder:
 
 
 # Data
-data: brain # or knee
+data: knee # or knee
 data_root: data
 set: train
-slice: 0
+slice: 5
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
