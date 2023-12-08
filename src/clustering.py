@@ -55,6 +55,8 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     # Maintain order
     radii = [0] + list(OrderedDict(zip(unique_elements, normalized_counts)).values())
     radii = np.array(radii)
+    # Make sure last one covers entire range
+    radii[no_parts] = 2
     # We can ignore the Coil as not relevant
     if show:
         clustered = np.zeros((C,H,W))
