@@ -11,7 +11,14 @@ import fastmri
 
 
 
-def partition_kspace(img, kcoords, show = True, no_steps=40, no_parts=4):
+def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4):
+    if dataset == None and (img == None or kcoords == None):
+        raise ValueError('Dataset or image must be provided')
+    if dataset:
+        C,H,W,S = dataset.shape
+        img = dataset.image.reshape(C,H,W,S)
+        kcoords = dataset.coords.reshape(C,H,W,3)
+
     dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
     # Max distance when |x|=1 and |y|=1, so sqrt(2)
     inds = []
