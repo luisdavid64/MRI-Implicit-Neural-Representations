@@ -118,7 +118,7 @@ dataset, data_loader, val_loader = get_data_loader(
     normalization=config["normalization"]
 )
 
-partition, part_radii = partition_kspace(
+_, part_radii = partition_kspace(
     dataset=dataset, 
     no_steps=part_config["no_steps"],
     no_parts=part_config["no_models"],
