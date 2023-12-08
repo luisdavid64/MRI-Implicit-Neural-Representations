@@ -36,7 +36,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
             r_1 = sqrt(2)*(i + 1)/no_steps
         ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
         inds.append(ind)
-    radial_data = [fastmri.complex_abs(img[ind]) for ind in inds]
+    radial_data = [torch.log(fastmri.complex_abs(img[ind])) for ind in inds]
     means = [torch.mean(part).item() for part in radial_data]
     means = np.array(means).reshape(-1,1)
     kmeans = KMeans(
