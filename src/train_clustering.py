@@ -170,7 +170,7 @@ for epoch in range(max_epoch):
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         for o in optim:
             o.zero_grad()
-        for i in range(len(part_radii) - 1):
+        for i in range(no_models):
             r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
             r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
             # r_0 = part_radii[i]
@@ -207,7 +207,7 @@ for epoch in range(max_epoch):
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 batch_rec = torch.zeros(gt.shape).to(device)
-                for i in range(len(part_radii) - 1):
+                for i in range(no_models):
                     r_0 = part_radii[i]
                     r_1 = part_radii[i+1]
                     ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
