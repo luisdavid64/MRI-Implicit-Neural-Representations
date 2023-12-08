@@ -164,8 +164,7 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(coords)
-        dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -183,7 +182,7 @@ for epoch in range(max_epoch):
                 train_output = model[i](coords_local)
                 train_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                    train_loss, _ = loss_fn(train_output, gt_local, kcoords.to(device))
+                    train_loss, _ = loss_fn(train_output, gt_local, coords.to(device))
                 else:
                     train_loss = 0.5 * loss_fn(train_output, gt_local)
                 train_loss.backward()
@@ -203,8 +202,7 @@ for epoch in range(max_epoch):
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                kcoords = torch.clone(coords)
-                dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
@@ -219,7 +217,7 @@ for epoch in range(max_epoch):
                         test_output = model[i](coords_local)
                         test_loss = 0
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                            test_loss, _ = loss_fn(test_output, gt_local, kcoords.to(device))
+                            test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
                         else:
                             test_loss = 0.5 * loss_fn(test_output, gt_local)
                         test_running_loss += test_loss.item()
