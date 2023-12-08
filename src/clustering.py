@@ -9,10 +9,6 @@ from math import sqrt
 import fastmri
 from collections import OrderedDict
 
-
-
-
-
 def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4):
     if dataset == None and (img == None or kcoords == None):
         raise ValueError('Dataset or image must be provided')
@@ -47,14 +43,19 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
         random_state=42
     )
     kmeans.fit(means)
-    # Labels to indices
     # With radii going outwards, so garantied to have order
     labels = kmeans.labels_
-    unique_elements, counts = np.unique(labels, return_counts=True)
+    unique_elements, indices, counts = np.unique(labels, return_counts=True, return_index=True)
+    # Relative order of clusters is important
+    order = np.argsort(indices)
+    unique_elements = unique_elements[order]
+    counts = counts[order]
     normalized_counts = sqrt(2)*np.cumsum(counts / len(labels))
-    # Maintain order
+
+    # Add center as starting point
     radii = [0] + list(OrderedDict(zip(unique_elements, normalized_counts)).values())
     radii = np.array(radii)
+    
     # Make sure last one covers entire range
     radii[no_parts] = 2
     # We can ignore the Coil as not relevant
@@ -91,4 +92,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    partition_kspace(img=img,kcoords=coords)
+    partition_kspace(img=img,kcoords=coords, show=True)
