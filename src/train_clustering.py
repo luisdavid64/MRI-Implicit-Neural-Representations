@@ -180,14 +180,14 @@ for epoch in range(max_epoch):
             if ind[0].numel():
                 coords_local = coords[ind]
                 gt_local = gt[ind]
-                train_output = model[partition[i]](coords_local)
+                train_output = model[i](coords_local)
                 train_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                     train_loss, _ = loss_fn(train_output, gt_local, kcoords.to(device))
                 else:
                     train_loss = 0.5 * loss_fn(train_output, gt_local)
                 train_loss.backward()
-            optim[partition[i]].step()
+            optim[i].step()
 
         running_loss += train_loss.item()
 
@@ -216,7 +216,7 @@ for epoch in range(max_epoch):
                     if ind[0].numel():
                         coords_local = coords[ind]
                         gt_local = gt[ind]
-                        test_output = model[partition[i]](coords_local)
+                        test_output = model[i](coords_local)
                         test_loss = 0
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             test_loss, _ = loss_fn(test_output, gt_local, kcoords.to(device))
