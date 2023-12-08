@@ -39,6 +39,9 @@ encoder:
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3 
 
+partition:
+  no_steps: 40
+  no_models: 4
 
 # Data
 data: brain # or knee
