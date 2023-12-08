@@ -14,6 +14,7 @@ from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, 
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 from math import sqrt
 from clustering import partition_kspace
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -171,6 +172,8 @@ for epoch in range(max_epoch):
         for o in optim:
             o.zero_grad()
         for i in range(len(part_radii) - 1):
+            # r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
+            # r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
             r_0 = part_radii[i]
             r_1 = part_radii[i+1]
             ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
