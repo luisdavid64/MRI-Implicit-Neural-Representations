@@ -6,10 +6,10 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 60000            # Batch size (320x320)
+batch_size: 120000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.00001             # Weight decay
+weight_decay: 0.0000001             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
 lr: 0.00003                    # Initial learning rate
@@ -29,7 +29,7 @@ model: SIREN                  # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 2
-  network_depth: 3            # Depth of MLP layers
+  network_depth: 4            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: True             # Set this to true to use a tanh layer at the end
 
