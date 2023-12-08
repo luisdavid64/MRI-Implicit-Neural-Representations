@@ -117,14 +117,14 @@ dataset, data_loader, val_loader = get_data_loader(
     normalization=config["normalization"]
 )
 
-partition = partition_kspace(
+partition, part_radii = partition_kspace(
     dataset=dataset, 
     no_steps=part_config["no_steps"],
     no_parts=part_config["no_models"],
     show=False
 )
-print("Data partitions:")
-print(partition)
+print("Kmeans Radial partitioning:")
+print(part_radii / sqrt(2))
 
 bs = config["batch_size"]
 image_shape = dataset.img_shape
@@ -170,15 +170,9 @@ for epoch in range(max_epoch):
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         for o in optim:
             o.zero_grad()
-        for i in range(no_steps):
-            if i == 0:
-                r_0 = 0
-            else:
-                r_0 = sqrt(2)*(i)/no_steps
-            if i == no_steps - 1:
-                r_1 = sqrt(2)
-            else:
-                r_1 = sqrt(2)*(i + 1)/no_steps
+        for i in range(len(part_radii) - 1):
+            r_0 = part_radii[i]
+            r_1 = part_radii[i+1]
             ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
             if ind[0].numel():
                 coords_local = coords[ind]
@@ -212,15 +206,9 @@ for epoch in range(max_epoch):
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 batch_rec = torch.zeros(gt.shape).to(device)
-                for i in range(no_steps):
-                    if i == 0:
-                        r_0 = 0
-                    else:
-                        r_0 = sqrt(2)*(i)/no_steps
-                    if i == no_steps - 1:
-                        r_1 = sqrt(2)
-                    else:
-                        r_1 = sqrt(2)*(i + 1)/no_steps
+                for i in range(len(part_radii) - 1):
+                    r_0 = part_radii[i]
+                    r_1 = part_radii[i+1]
                     ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                     if ind[0].numel():
                         coords_local = coords[ind]

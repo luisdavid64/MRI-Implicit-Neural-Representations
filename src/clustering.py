@@ -7,6 +7,8 @@ from sklearn.cluster import KMeans
 import numpy as np
 from math import sqrt
 import fastmri
+from collections import OrderedDict
+
 
 
 
@@ -18,6 +20,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
         C,H,W,S = dataset.shape
         img = dataset.image.reshape(C,H,W,S)
         kcoords = dataset.coords.reshape(C,H,W,3)
+    C,H,W,S = img.shape 
 
     dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
     # Max distance when |x|=1 and |y|=1, so sqrt(2)
@@ -45,7 +48,13 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     )
     kmeans.fit(means)
     # Labels to indices
+    # With radii going outwards, so garantied to have order
     labels = kmeans.labels_
+    unique_elements, counts = np.unique(labels, return_counts=True)
+    normalized_counts = sqrt(2)*np.cumsum(counts / len(labels))
+    # Maintain order
+    radii = [0] + list(OrderedDict(zip(unique_elements, normalized_counts)).values())
+    radii = np.array(radii)
     # We can ignore the Coil as not relevant
     if show:
         clustered = np.zeros((C,H,W))
@@ -53,7 +62,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
             clustered[ind] = label
         plt.imshow(clustered[0], cmap='gray')
         plt.show()
-    return labels
+    return labels, radii
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -80,4 +89,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    partition_kspace(img,coords)
+    partition_kspace(img=img,kcoords=coords)
