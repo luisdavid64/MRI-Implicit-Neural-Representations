@@ -262,10 +262,11 @@ for epoch in range(max_epoch):
 
     if (epoch + 1) % config['image_save_epoch'] == 0:
         # Save final model
-        model_name = os.path.join(checkpoint_directory, 'model_%06d.pt' % (epoch + 1))
-        torch.save({'net': model.state_dict(), \
-                    'enc': encoder.B, \
-                    'opt': optim.state_dict(), \
-                    }, model_name)
+        for i in no_models:
+            model_name = os.path.join(checkpoint_directory, 'submodel_%d_%06d.pt' % (i, epoch + 1))
+            torch.save({'net': model[i].state_dict(), \
+                        'enc': encoder.B, \
+                        'opt': optim[i].state_dict(), \
+                        }, model_name)
     for s in scheduler:
         s.step()
