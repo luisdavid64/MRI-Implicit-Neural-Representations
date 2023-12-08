@@ -39,12 +39,17 @@ encoder:
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3 
 
+partition:
+  no_steps: 40
+  no_models: 4
+
+
 
 # Data
-data: knee # or knee
+data: brain # or knee
 data_root: data
 set: train
-slice: 5
+slice: 10
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]

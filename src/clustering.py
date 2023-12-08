@@ -46,13 +46,14 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     kmeans.fit(means)
     # Labels to indices
     labels = kmeans.labels_
-    clustered = np.zeros((C,H,W))
-    for (ind,label) in zip(inds,labels):
-        clustered[ind] = label
     # We can ignore the Coil as not relevant
     if show:
+        clustered = np.zeros((C,H,W))
+        for (ind,label) in zip(inds,labels):
+            clustered[ind] = label
         plt.imshow(clustered[0], cmap='gray')
         plt.show()
+    return labels
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
