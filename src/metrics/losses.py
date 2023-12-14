@@ -4,22 +4,13 @@ import fastmri
 from torch.nn import MarginRankingLoss
 
 class RadialL2Loss(torch.nn.Module):
-    def __init__(self, weights=[], parts = [], eps=1e-9):
+    def __init__(self, eps=1e-9):
         super(RadialL2Loss, self).__init__()
-        self.radial_weights = weights 
-        self.radial_parts = parts
         self.eps = eps
-    def forward(self, x, y, dist):
-        loss = 0
-        for i in range(len(self.radial_parts) - 1):
-            r_0 = self.radial_parts[i] 
-            r_1 = self.radial_parts[i+1]
-            ind = torch.where((dist >= r_0) & (dist <= r_1))
-            if ind[0].numel():
-                # Scale loss value
-                loss += torch.nn.functional.mse_loss(x[ind], y[ind])
-                # Magnitude loss
-                loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x[ind]), fastmri.complex_abs(y[ind]))
+    def forward(self, x, y):
+        loss = torch.nn.functional.mse_loss(x,y)
+        # Magnitude loss
+        loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
         return loss
 
 
