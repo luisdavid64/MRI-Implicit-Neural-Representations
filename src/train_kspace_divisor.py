@@ -11,34 +11,19 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, RadialL2Loss
 from clustering import partition_and_stats
 from math import sqrt
 
 
 
-def scale_space(stats, img, dist, parts, fun=None):
+def scale_space(stats, img, dist, parts):
     # len(Stats) == len(parts - 1)
-    if stats:
-        for i in range(len(parts) - 1):
-            r_0 = parts[i] 
-            r_1 = parts[i+1]
-            ind = torch.where((dist >= r_0) & (dist <= r_1))
-            img[ind] = img[ind] / stats[i]
-    else:
-        img = fun(img)
-    return img
-
-def un_scale_space(stats, img, dist, parts, fun=None):
-    # len(Stats) == len(parts - 1)
-    if stats:
-        for i in range(len(parts) - 1):
-            r_0 = parts[i] 
-            r_1 = parts[i+1]
-            ind = torch.where((dist >= r_0) & (dist <= r_1))
-            img[ind] = img[ind] / stats[i]
-    else:
-        img = fun(img)
+    for i in range(len(parts) - 1):
+        r_0 = parts[i] 
+        r_1 = parts[i+1]
+        ind = torch.where((dist >= r_0) & (dist <= r_1))
+        img[ind] = img[ind] / stats[i]
     return img
 
 
@@ -95,23 +80,6 @@ if config['optimizer'] == 'Adam':
 else:
     NotImplementedError
 
-# Setup loss functions
-if config['loss'] == 'L2':
-    loss_fn = torch.nn.MSELoss()
-if config['loss'] == 'T':
-    loss_fn = TLoss()
-if config['loss'] == 'LSL':
-    loss_fn = CenterLoss(config["loss_opts"])
-if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
-elif config['loss'] == 'L1':
-    loss_fn = torch.nn.L1Loss()
-elif config['loss'] == 'HDR':
-    loss_fn = HDRLoss_FF(config['loss_opts'])
-elif config['loss'] == 'tanh':
-    loss_fn = TanhL2Loss()
-else:
-    NotImplementedError
 
 if "pretrain" in config:
     checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
@@ -147,21 +115,38 @@ print(part_radii / sqrt(2))
 print("Radial stats:")
 print(stats)
 
+# Setup loss functions
+if config['loss'] == 'L2':
+    loss_fn = torch.nn.MSELoss()
+if config['loss'] == 'T':
+    loss_fn = TLoss()
+if config['loss'] == 'LSL':
+    loss_fn = CenterLoss(config["loss_opts"])
+if config['loss'] == 'FFL':
+    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
+elif config['loss'] == 'L1':
+    loss_fn = torch.nn.L1Loss()
+elif config['loss'] == 'HDR':
+    loss_fn = HDRLoss_FF(config['loss_opts'])
+elif config['loss'] == 'tanh':
+    loss_fn = TanhL2Loss()
+elif config['loss'] == 'rad':
+    loss_fn = RadialL2Loss(weights=stats, parts=part_radii)
+else:
+    NotImplementedError
+
 bs = config["batch_size"]
 image_shape = dataset.img_shape
 C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
 dist_to_center = torch.sqrt(dataset.coords[...,1]**2 + dataset.coords[...,2]**2)
-# Rescale data
-dataset.image = scale_space(stats, dataset.image, dist_to_center, part_radii).reshape(C*H*W,S)
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
 for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 # Scale Inversely
-train_image = scale_space(stats_rec, train_image, dist_to_center, part_radii).reshape(C*H*W,S)
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
@@ -223,7 +208,6 @@ for epoch in range(max_epoch):
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
-        im_recon = scale_space(stats_rec, im_recon, dist_to_center, part_radii)
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         # Scale Inversely
         if not in_image_space:
