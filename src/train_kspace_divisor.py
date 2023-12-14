@@ -26,6 +26,11 @@ def scale_space(stats, img, dist, parts):
         img[ind] = img[ind] / stats[i]
     return img
 
+def rescale_stats(stats):
+    new_stats = [1/x for x in stats]
+    mx = new_stats[-1]
+    new_stats = [x/mx for x in new_stats]
+    return new_stats
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -109,11 +114,14 @@ stats, part_radii = partition_and_stats(
     no_parts=part_config["no_models"],
     show=False
 )
-stats_rec = [1/x for x in stats]
+# stats_rec = [1/x for x in stats]
+stats_rec = rescale_stats(stats)
 print("Kmeans Radial partitioning:")
 print(part_radii / sqrt(2))
 print("Radial stats:")
 print(stats)
+print("Stats as weights:")
+print(stats_rec)
 
 # Setup loss functions
 if config['loss'] == 'L2':
