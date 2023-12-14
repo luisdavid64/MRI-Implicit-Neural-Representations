@@ -1,5 +1,5 @@
 # Logger options
-log_iter: 5                 # How often to log the training loss 
+log_iter: 2                 # How often to log the training loss 
 val_epoch: 10               # How often to validate testing and save output images during training
 image_save_epoch: 100        # How often do you want to save output images during training
 display_image_num: 8

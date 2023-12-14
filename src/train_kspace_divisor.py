@@ -131,7 +131,7 @@ elif config['loss'] == 'HDR':
 elif config['loss'] == 'tanh':
     loss_fn = TanhL2Loss()
 elif config['loss'] == 'rad':
-    loss_fn = RadialL2Loss(weights=stats, parts=part_radii)
+    loss_fn = RadialL2Loss(weights=stats_rec, parts=part_radii)
 else:
     NotImplementedError
 

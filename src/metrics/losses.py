@@ -17,9 +17,9 @@ class RadialL2Loss(torch.nn.Module):
             r_1 = self.radial_parts[i+1]
             ind = torch.where((dist >= r_0) & (dist <= r_1))
             # Scale loss value
-            loss += torch.nn.functional.mse_loss(x[ind], y[ind]) / (self.radial_weights[i] + self.eps)
+            loss += self.radial_weights[i]* torch.nn.functional.mse_loss(x[ind], y[ind])
             # Magnitude loss
-            loss += 0.1*torch.nn.functional.mse_loss(fastmri.complex_abs(x[ind]), fastmri.complex_abs(y[ind])) / (self.radial_weights[i] + self.eps)
+            loss += self.radial_weights[i]*0.1*torch.nn.functional.mse_loss(fastmri.complex_abs(x[ind]), fastmri.complex_abs(y[ind]))
         return loss
 
 
