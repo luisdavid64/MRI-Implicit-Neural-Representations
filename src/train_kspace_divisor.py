@@ -178,6 +178,8 @@ for epoch in range(max_epoch):
         train_loss = 0
         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
             train_loss, _ = loss_fn(train_output, gt, gt)
+        elif config["loss"] in ["rad"]:
+            train_loss = loss_fn(train_output, gt, dist_to_center)
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
 
@@ -204,6 +206,8 @@ for epoch in range(max_epoch):
                 test_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                     test_loss, _ = loss_fn(test_output, gt, gt)
+                elif config["loss"] in ["rad"]:
+                    test_loss = loss_fn(test_output, gt, dist_to_center)
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
