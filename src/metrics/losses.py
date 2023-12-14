@@ -12,7 +12,7 @@ class RadialL2Loss(torch.nn.Module):
         self.sigma = 2
     def forward(self, x, y, dist):
         loss = 0
-        for i in range(len(self.radial_parts - 1)):
+        for i in range(len(self.radial_parts) - 1):
             r_0 = self.radial_parts[i] 
             r_1 = self.radial_parts[i+1]
             ind = torch.where((dist >= r_0) & (dist <= r_1))
