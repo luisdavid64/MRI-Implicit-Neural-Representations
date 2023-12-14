@@ -12,25 +12,9 @@ from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, RadialL2Loss
-from clustering import partition_and_stats
 from math import sqrt
-
-
-
-def scale_space(stats, img, dist, parts):
-    # len(Stats) == len(parts - 1)
-    for i in range(len(parts) - 1):
-        r_0 = parts[i] 
-        r_1 = parts[i+1]
-        ind = torch.where((dist >= r_0) & (dist <= r_1))
-        img[ind] = img[ind] / stats[i]
-    return img
-
-def rescale_stats(stats):
-    new_stats = [1/x for x in stats]
-    mx = new_stats[-1]
-    new_stats = [x/mx for x in new_stats]
-    return new_stats
+from clustering import partition_and_stats
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -64,9 +48,12 @@ shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy c
 # Setup input encoder:
 encoder = Positional_Encoder(config['encoder'], device=device)
 part_config = config["partition"]
+no_models = part_config["no_models"]
+no_steps = part_config["no_steps"]
 
 # Setup model
 if config['model'] == 'SIREN':
+    # 0.5% radial distance
     model = SIREN(config['net'])
 elif config['model'] == 'WIRE':
     model = WIRE(config['net'])
@@ -76,8 +63,9 @@ elif config['model'] == 'FFN':
     model = FFN(config['net'])
 else:
     raise NotImplementedError
-model.to(device=device)
+
 model.train()
+model.to(device=device)
 
 # Setup optimizer
 if config['optimizer'] == 'Adam':
@@ -114,14 +102,17 @@ stats, part_radii = partition_and_stats(
     no_parts=part_config["no_models"],
     show=False
 )
-# stats_rec = [1/x for x in stats]
-stats_rec = rescale_stats(stats)
 print("Kmeans Radial partitioning:")
 print(part_radii / sqrt(2))
 print("Radial stats:")
 print(stats)
-print("Stats as weights:")
-print(stats_rec)
+
+def rescale_stats(stats):
+    new_stats = [1/x for x in stats]
+    mx = new_stats[-1]
+    new_stats = [x/mx for x in new_stats]
+    return new_stats
+stats_rec = rescale_stats(stats)
 
 # Setup loss functions
 if config['loss'] == 'L2':
@@ -139,7 +130,7 @@ elif config['loss'] == 'HDR':
 elif config['loss'] == 'tanh':
     loss_fn = TanhL2Loss()
 elif config['loss'] == 'rad':
-    loss_fn = RadialL2Loss(weights=stats_rec, parts=part_radii)
+    loss_fn = RadialL2Loss()
 else:
     NotImplementedError
 
@@ -148,13 +139,10 @@ image_shape = dataset.img_shape
 C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
-dist_to_center = torch.sqrt(dataset.coords[...,1]**2 + dataset.coords[...,2]**2)
-
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
 for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
-# Scale Inversely
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
@@ -164,8 +152,10 @@ train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
 save_im(image, image_directory, "train.png")
+
 # torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
 del train_image
+
 best_psnr = -999999
 best_psnr_ep = 0
 best_ssim = -1
@@ -178,21 +168,26 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
+        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         optim.zero_grad()
-        train_output = model(coords)  # [bs, 2]
-        train_loss = 0
-        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-            train_loss, _ = loss_fn(train_output, gt, gt)
-        elif config["loss"] in ["rad"]:
-            train_loss = loss_fn(train_output, gt, dist_to_center)
-        else:
-            train_loss = 0.5 * loss_fn(train_output, gt)
-
-        train_loss.backward()
-        optim.step()
+        for i in range(no_models):
+            r_0 = part_radii[i] 
+            r_1 = part_radii[i+1]
+            ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+            if ind[0].numel():
+                coords_local = coords[ind]
+                gt_local = gt[ind]
+                train_output = model(coords_local)
+                train_loss = 0
+                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                    train_loss, _ = stats_rec[i] * loss_fn(train_output, gt_local, coords.to(device))
+                else:
+                    train_loss = 0.5* stats_rec[i] * loss_fn(train_output, gt_local)
+                train_loss.backward()
+            optim.step()
 
         running_loss += train_loss.item()
 
@@ -207,21 +202,28 @@ for epoch in range(max_epoch):
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = model(coords)  # [bs, 2]
-                test_loss = 0
-                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                    test_loss, _ = loss_fn(test_output, gt, gt)
-                elif config["loss"] in ["rad"]:
-                    test_loss = loss_fn(test_output, gt, dist_to_center)
-                else:
-                    test_loss = 0.5 * loss_fn(test_output, gt)
-                test_running_loss += test_loss.item()
-                im_recon[it*bs:(it+1)*bs, :] = test_output
+                batch_rec = torch.zeros(gt.shape).to(device)
+                for i in range(no_models):
+                    r_0 = part_radii[i]
+                    r_1 = part_radii[i+1]
+                    ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+                    if ind[0].numel():
+                        coords_local = coords[ind]
+                        gt_local = gt[ind]
+                        test_output = model(coords_local)
+                        test_loss = 0
+                        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                            test_loss, _ = stats_rec[i] * loss_fn(test_output, gt_local, coords.to(device))
+                        else:
+                            test_loss = 0.5 * stats_rec[i] * loss_fn(test_output, gt_local)
+                        test_running_loss += test_loss.item()
+                        batch_rec[ind] = test_output
+                im_recon[it*bs:(it+1)*bs, :] = batch_rec
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
-        # Scale Inversely
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
             # Plot relative error
