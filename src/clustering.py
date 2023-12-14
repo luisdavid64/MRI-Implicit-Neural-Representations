@@ -67,6 +67,27 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
         plt.show()
     return labels, radii
 
+def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4):
+    if dataset == None and (img == None or kcoords == None):
+        raise ValueError('Dataset or image must be provided')
+    if dataset:
+        C,H,W,S = dataset.shape
+        img = dataset.image.reshape(C,H,W,S)
+        kcoords = dataset.coords.reshape(C,H,W,3)
+    _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
+    dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+    maxes = []
+    for i in range(len(radii) - 1):
+        r_0 = radii[i]
+        r_1 = radii[i+1]
+        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+        mx = torch.abs(img[ind]).max()
+        maxes.append(mx)
+    return maxes, radii
+        
+    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='src/config/local/config_siren_kspace_loe.yaml', help='Path to the config file.')
@@ -92,4 +113,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    partition_kspace(img=img,kcoords=coords, show=True)
+    partition_and_stats(img=img,kcoords=coords, show=True)
