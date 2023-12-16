@@ -89,6 +89,25 @@ def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_
             stats.append(st)
     return stats, radii
         
+def partition_pseudo_label(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
+    if dataset == None and (img == None or kcoords == None):
+        raise ValueError('Dataset or image must be provided')
+    if dataset:
+        C,H,W,S = dataset.shape
+        img = dataset.image.reshape(C,H,W,S)
+        kcoords = dataset.coords.reshape(C,H,W,3)
+    C,H,W,S = img.shape
+    _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
+    dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+    pseudo_label = torch.zeros((C, H, W, no_parts))
+    for i in range(len(radii) - 1):
+        r_0 = radii[i]
+        r_1 = radii[i+1]
+        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1)) 
+        ind = ind + tuple([torch.zeros(ind[0].shape).int() + i])
+        pseudo_label[ind] = 1
+    pseudo_label = pseudo_label.reshape((C*H*W, no_parts))
+    return pseudo_label, radii
     
 
 
@@ -117,4 +136,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    partition_and_stats(img=img,kcoords=coords, show=True)
+    lab, _ = partition_pseudo_label(img=img,kcoords=coords, show=False)
