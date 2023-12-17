@@ -260,3 +260,43 @@ class WIRE(nn.Module):
             return output.real
          
         return output
+    
+class LinearWeightedAvg(nn.Module):
+    def __init__(self, n_inputs, n_heads, device):
+        super(LinearWeightedAvg, self).__init__()
+        self.weights = []
+        for _ in range(n_heads):
+            self.weights.append(nn.ParameterList([nn.Parameter(torch.randn(1).to(device)) for i in range(n_inputs)]))
+
+    def forward(self, input, weight_idx):
+        res = 0
+        for idx, inp in enumerate(input):
+            res += inp * self.weights[weight_idx][idx]
+        return res
+
+class MultiHeadWrapper(nn.Module):
+    def __init__(self, 
+                 backbone,
+                 no_heads=4,
+                 params=None,
+                 device="cpu"
+                ):
+        super().__init__()
+        self.backbone = backbone
+        self.no_heads = 4
+        self.heads = []
+        hidden_dim = params['network_width']
+        output_dim = params['network_output_size']
+        for _ in range(self.no_heads):
+            self.heads.append(SirenLayer(hidden_dim, output_dim, is_last=True, last_tanh=True).to(device=device))
+        self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
+    
+    def forward(self, coords, weight_idx):
+        x = self.backbone(coords)
+        out = []
+        for i in range(self.no_heads):
+            out.append(self.heads[i](x))
+        res = self.weighted_avg(out, weight_idx)
+        # Get overall result and final output
+        return out, res
+
