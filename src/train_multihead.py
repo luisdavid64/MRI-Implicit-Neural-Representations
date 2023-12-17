@@ -75,9 +75,15 @@ model = MultiHeadWrapper(
     device=device
 )
 
+params = []
+params = params + list(model.backbone.parameters())
+for i in range(no_models):
+    params = params + list(model.heads[i].parameters())
+params = params + list(model.weighted_avg.parameters())
 # Setup optimizer
 if config['optimizer'] == 'Adam':
-    optim = torch.optim.Adam(model.parameters(), lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
+    # Make sure all params optimized
+    optim = torch.optim.Adam(params, lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
 else:
     NotImplementedError
 
