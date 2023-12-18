@@ -266,7 +266,7 @@ class LinearWeightedAvg(nn.Module):
         super(LinearWeightedAvg, self).__init__()
         self.weights = []
         for _ in range(n_heads):
-            self.weights.append(nn.ParameterList([nn.Parameter(torch.randn(1).to(device)) for i in range(n_inputs)]))
+            self.weights.append(nn.ParameterList([nn.Parameter(torch.tensor([1/n_heads]).to(device)) for i in range(n_inputs)]))
 
     def forward(self, input, weight_idx):
         res = 0
@@ -286,8 +286,6 @@ class MultiHeadWrapper(nn.Module):
         self.no_heads = params["no_heads"]
         assert no_heads > 0
         self.heads = []
-        hidden_dim = params['network_width']
-        output_dim = params['network_output_size']
         for _ in range(self.no_heads):
             self.heads.append(SIREN(params).to(device=device))
         self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
