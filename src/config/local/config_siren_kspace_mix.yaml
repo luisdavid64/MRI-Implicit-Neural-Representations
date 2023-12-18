@@ -31,13 +31,13 @@ net:
   network_output_size: 2
   network_depth: 4            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
-  last_tanh: True             # Set this to true to use a tanh layer at the end
+  last_tanh: False             # Set this to true to use a tanh layer at the end
 
 encoder:
   embedding: gauss            #  Input embedding method
   scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
-  coordinates_size: 3 
+  coordinates_size: 4 
 
 partition:
   no_steps: 40
@@ -49,7 +49,7 @@ partition:
 data: brain # or knee
 data_root: data
 set: train
-slice: 10
+slice: 0
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
