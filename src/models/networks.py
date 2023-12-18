@@ -283,12 +283,13 @@ class MultiHeadWrapper(nn.Module):
                 ):
         super().__init__()
         self.backbone = backbone
-        self.no_heads = 4
+        self.no_heads = params["no_heads"]
+        assert no_heads > 0
         self.heads = []
         hidden_dim = params['network_width']
         output_dim = params['network_output_size']
         for _ in range(self.no_heads):
-            self.heads.append(SirenLayer(hidden_dim, output_dim, is_last=True, last_tanh=True).to(device=device))
+            self.heads.append(SIREN(params).to(device=device))
         self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
     
     def forward(self, coords, weight_idx):
