@@ -174,7 +174,6 @@ for epoch in range(max_epoch):
         coords = torch.cat((coords,dist_to_center.unsqueeze(dim=-1)),dim=-1)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
-        optim.zero_grad()
         for i in range(no_models):
             r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
             r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
@@ -203,8 +202,9 @@ for epoch in range(max_epoch):
                     train_loss += 0.5 * loss_fn(train_output, gt_local)
 
                 train_loss.backward()
+                running_loss += train_loss.item()
         optim.step()
-        running_loss += train_loss.item()
+        optim.zero_grad()
 
         if it % config['log_iter'] == config['log_iter'] - 1:
             train_loss = train_loss.item()
