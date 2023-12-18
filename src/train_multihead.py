@@ -171,9 +171,9 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
+        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2).to(device=device)
         coords = coords.to(device=device)  # [bs, 3]
-        coords = torch.cat((coords,dist_to_center),dim=-1)
+        coords = torch.cat((coords,dist_to_center.unsqueeze(dim=-1)),dim=-1)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         optim.zero_grad()
@@ -219,9 +219,9 @@ for epoch in range(max_epoch):
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
+                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2).to(device=device)
                 coords = coords.to(device=device)  # [bs, 3]
-                coords = torch.cat((coords,dist_to_center),dim=-1)
+                coords = torch.cat((coords,dist_to_center.unsqueeze(dim=-1)),dim=-1)
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 batch_rec = torch.zeros(gt.shape).to(device)

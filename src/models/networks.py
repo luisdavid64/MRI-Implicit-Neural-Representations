@@ -270,7 +270,8 @@ class LinearWeightedAvg(nn.Module):
 
     def forward(self, input, weight_idx):
         res = 0
-        res = torch.sum(input * self.weights[weight_idx], dim=0)
+        for idx, inp in enumerate(input):
+            res += inp * self.weights[weight_idx][idx]
         return res
 
 class MultiHeadWrapper(nn.Module):
