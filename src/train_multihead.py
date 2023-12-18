@@ -171,13 +171,13 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(coords)
+        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
+        coords = torch.cat((coords,dist_to_center),dim=-1)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
         optim.zero_grad()
         for i in range(no_models):
-            dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
             r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
             r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
             # r_0 = part_radii[i]
@@ -191,7 +191,7 @@ for epoch in range(max_epoch):
                 for idx, out in enumerate(layer_outs):
                     # Get gradients for final layers, and scale if target
                     # Make hyperparam is better probs
-                    multiplier = (1 if idx == i else 0.05)
+                    multiplier = (1 if idx == i else 0.0001)
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                         loss, _ = loss_fn(out, gt_local, coords.to(device))
                         train_loss += multiplier * loss
@@ -220,8 +220,8 @@ for epoch in range(max_epoch):
         with torch.no_grad():
             for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
-                kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
+                coords = torch.cat((coords,dist_to_center),dim=-1)
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 batch_rec = torch.zeros(gt.shape).to(device)
