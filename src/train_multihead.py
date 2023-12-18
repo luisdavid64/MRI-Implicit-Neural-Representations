@@ -49,10 +49,8 @@ shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy c
 encoder = Positional_Encoder(config['encoder'], device=device)
 
 # Setup model
-model_conf = config["net"].copy()
-model_conf["network_output_size"] = 512
 if config['model'] == 'SIREN':
-    model_back = SIREN(model_conf)
+    model_back = SIREN(config['net'])
 elif config['model'] == 'WIRE':
     model_back = WIRE(config['net'])
 elif config['model'] == 'WIRE2D':
@@ -71,7 +69,7 @@ no_steps = part_config["no_steps"]
 model = MultiHeadWrapper(
     backbone=model_back,
     no_heads=no_models,
-    params=config["net"],
+    params=config["subnets"],
     device=device
 )
 

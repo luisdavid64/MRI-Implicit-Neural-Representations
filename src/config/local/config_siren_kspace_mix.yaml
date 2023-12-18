@@ -28,10 +28,18 @@ model: SIREN                  # Options for MLP models [FFN | SIREN]
 # pretrain: /Users/luisreyes/Courses/ADLM/learning-neural-implicit-representations-of-mri-data/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_tanh_lr3e-05_encoder_gauss_scale4_size2562023-11-28_16-26-26/checkpoints/model_001000.pt
 net: 
   network_input_size: 512     # Input size for network
-  network_output_size: 2
+  network_output_size: 512
   network_depth: 4            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: False             # Set this to true to use a tanh layer at the end
+
+subnets: 
+  no_heads: 4
+  network_input_size: 512     # Input size for network
+  network_output_size: 2
+  network_depth: 2            # Depth of MLP layers
+  network_width: 512          # Width of MLP layers
+  last_tanh: True             # Set this to true to use a tanh layer at the end
 
 encoder:
   embedding: gauss            #  Input embedding method
