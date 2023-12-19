@@ -304,13 +304,11 @@ class MultiHeadWrapper(nn.Module):
     
     def forward(self, coords, weight_idx,dists):
         x = self.backbone(coords)
-        out = []
         # Get radial distance
         weights = self.weighted_avg(coords[:,-1].unsqueeze(dim=-1))
         res = 0
-        for i in range(self.no_heads):
-            out.append(self.heads[i](x))
-            res += weights[:,i].unsqueeze(1) * out[i]
+        out = [head(x) for head in self.heads]
+        res = torch.sum(weights.unsqueeze(2) * torch.stack(out, dim=2), dim=2)
         # Constrain range
         if self.last_tanh:
             res = torch.tanh(res)
