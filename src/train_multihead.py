@@ -213,11 +213,10 @@ for epoch in range(max_epoch):
         model.eval()
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
-        im_recon = torch.zeros_like(gt).to(device)
         with torch.no_grad():
             for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 coords, gt = coords.to(device), gt.to(device)
-                coords = encoder.embedding(C,H,W,S) # [bs, 2*embedding size]
+                coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 batch_rec = torch.zeros(gt.shape).to(device)
                 for i in range(no_models):
                     r_0, r_1 = part_radii[i], part_radii[i+1]
