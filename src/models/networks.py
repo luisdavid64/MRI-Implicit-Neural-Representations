@@ -308,7 +308,7 @@ class MultiHeadWrapper(nn.Module):
         weights = self.weighted_avg(coords[:,-1].unsqueeze(dim=-1))
         res = 0
         out = [head(x) for head in self.heads]
-        res = torch.sum(weights.unsqueeze(2) * torch.stack(out, dim=2), dim=2)
+        res = torch.sum(weights.unsqueeze(1) * torch.stack(out, dim=2), dim=2)
         # Constrain range
         if self.last_tanh:
             res = torch.tanh(res)
