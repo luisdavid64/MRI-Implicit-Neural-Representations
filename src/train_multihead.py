@@ -122,14 +122,15 @@ dataset, data_loader, val_loader = get_data_loader(
     slice=config["slice"],
     shuffle=True,
     full_norm=config["full_norm"],
-    normalization=config["normalization"]
+    normalization=config["normalization"],
+    use_dists=True
 )
 
 _, part_radii = partition_kspace(
     dataset=dataset, 
     no_steps=part_config["no_steps"],
     no_parts=part_config["no_models"],
-    show=False
+    show=False,
 )
 print("Kmeans Radial partitioning:")
 print(part_radii / sqrt(2))
@@ -142,7 +143,7 @@ print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
-for it, (coords, gt) in enumerate(val_loader):
+for it, (_, gt, _) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
@@ -167,13 +168,10 @@ print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
     running_loss = 0
-    for it, (coords, gt) in enumerate(data_loader):
+    for it, (coords, gt, dist_to_center) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2).to(device=device)
-        coords = coords.to(device=device)  # [bs, 3]
-        coords = torch.cat((coords,dist_to_center.unsqueeze(dim=-1)),dim=-1)
+        coords, gt = coords.to(device), gt.to(device)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
-        gt = gt.to(device=device)  # [bs, 2], [0, 1]
         for i in range(no_models):
             r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
             r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
@@ -181,10 +179,8 @@ for epoch in range(max_epoch):
             # r_1 = part_radii[i+1]
             ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
             if ind[0].numel():
-                coords_local = coords[ind]
-                gt_local = gt[ind]
-                dists_local = dist_to_center[ind]
-                layer_outs,train_output = model(coords_local, i, dists_local)
+                coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
+                layer_outs, train_output = model(coords_local, i, dists_local)
                 train_loss = 0
                 for idx, out in enumerate(layer_outs):
                     # Get gradients for final layers, and scale if target
@@ -217,22 +213,17 @@ for epoch in range(max_epoch):
         model.eval()
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
+        im_recon = torch.zeros_like(gt).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2).to(device=device)
-                coords = coords.to(device=device)  # [bs, 3]
-                coords = torch.cat((coords,dist_to_center.unsqueeze(dim=-1)),dim=-1)
+            for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                coords, gt = coords.to(device), gt.to(device)
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
-                gt = gt.to(device=device)  # [bs, 2], [0, 1]
                 batch_rec = torch.zeros(gt.shape).to(device)
                 for i in range(no_models):
-                    r_0 = part_radii[i]
-                    r_1 = part_radii[i+1]
+                    r_0, r_1 = part_radii[i], part_radii[i+1]
                     ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                     if ind[0].numel():
-                        coords_local = coords[ind]
-                        gt_local = gt[ind]
-                        dists_local = dist_to_center[ind]
+                        coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
                         _,test_output = model(coords_local, i, dists_local)
                         test_loss = 0
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
@@ -242,7 +233,7 @@ for epoch in range(max_epoch):
                         test_running_loss += test_loss.item()
                         batch_rec[ind] = test_output
                 im_recon[it*bs:(it+1)*bs, :] = batch_rec
-        im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
+        im_recon = im_recon.view(C,H,W,S).detach().cpu()
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
             # Plot relative error

@@ -379,5 +379,42 @@ class MRIDataset(Dataset):
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
 
+class MRIDatasetWithDistances(MRIDataset):
+    def __init__(self, 
+                 data_class='brain', 
+                 data_root="data",
+                 challenge='multicoil', 
+                 set="train", 
+                 transform=True, 
+                 sample=0, slice=0, 
+                 full_norm=False, 
+                 custom_file_or_path = None,
+                 per_coil_stats=True,
+                 centercrop=True,
+                 normalization="max"
+                 ):
+        super().__init__(
+                 data_class, 
+                 data_root,
+                 challenge, 
+                 set, 
+                 transform, 
+                 sample, 
+                 slice, 
+                 full_norm,
+                 custom_file_or_path,
+                 per_coil_stats,
+                 centercrop,
+                 normalization
+        )
+        self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
+        self.coords = torch.cat((self.coords,self.dist_to_center.unsqueeze(dim=-1)),dim=-1)
+
+    def __getitem__(self, idx):
+        return self.coords[idx], self.image[idx], self.dist_to_center[idx]
+
+
+
+
 if __name__ == "__main__":
     x = MRIDataset(transform=False)

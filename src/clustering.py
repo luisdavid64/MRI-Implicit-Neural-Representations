@@ -15,7 +15,10 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     if dataset:
         C,H,W,S = dataset.shape
         img = dataset.image.reshape(C,H,W,S)
-        kcoords = dataset.coords.reshape(C,H,W,3)
+        if dataset.coords.shape[-1] > 3:
+            kcoords = dataset.coords[:, 0:3].reshape(C,H,W,3)
+        else:
+            kcoords = dataset.coords.reshape(C,H,W,3)
     C,H,W,S = img.shape 
 
     dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
