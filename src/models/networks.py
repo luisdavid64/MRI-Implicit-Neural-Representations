@@ -276,10 +276,11 @@ class LinearWeightedAvg(nn.Module):
 
 class MultiHeadWrapper(nn.Module):
     def __init__(self, 
-                 backbone,
+                 backbone=None,
                  no_heads=4,
                  params=None,
-                 device="cpu"
+                 device="cpu",
+                 last_tanh=True
                 ):
         super().__init__()
         self.backbone = backbone
@@ -298,16 +299,21 @@ class MultiHeadWrapper(nn.Module):
             "network_width": 256,         
         }
         self.weighted_avg = FFN(config).to(device=device)
+        self.last_tanh = last_tanh
         # self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
     
     def forward(self, coords, weight_idx,dists):
         x = self.backbone(coords)
         out = []
-        weights = self.weighted_avg(x)
+        # Get radial distance
+        weights = self.weighted_avg(coords[:,-1])
         res = 0
         for i in range(self.no_heads):
             out.append(self.heads[i](x))
             res += weights[:,i].unsqueeze(1) * out[i]
+        # Constrain range
+        if self.last_tanh:
+            res = torch.tanh(res)
 
         # res = self.weighted_avg(out, weight_idx)
         # Get overall result and final output
