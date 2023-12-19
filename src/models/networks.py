@@ -288,14 +288,19 @@ class MultiHeadWrapper(nn.Module):
         self.heads = []
         for _ in range(self.no_heads):
             self.heads.append(SIREN(params).to(device=device))
-        self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
+        # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
+        output_dim = params['network_output_size']
+        self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
     
-    def forward(self, coords, weight_idx):
+    def forward(self, coords, weight_idx,dists):
         x = self.backbone(coords)
         out = []
         for i in range(self.no_heads):
             out.append(self.heads[i](x))
-        res = self.weighted_avg(out, weight_idx)
+        # res = self.weighted_avg(out, weight_idx)
         # Get overall result and final output
+        res = torch.cat(out, dim=-1)
+        res = torch.cat((res,dists.unsqueeze(dim=-1)), dim=-1)
+        res = self.weighted_avg(res)
         return out, res
 

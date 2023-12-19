@@ -183,8 +183,7 @@ for epoch in range(max_epoch):
             if ind[0].numel():
                 coords_local = coords[ind]
                 gt_local = gt[ind]
-                dists_local = dist_to_center[ind]
-                layer_outs,train_output = model(coords_local, i, dists_local)
+                layer_outs,train_output = model(coords_local, i)
                 train_loss = 0
                 for idx, out in enumerate(layer_outs):
                     # Get gradients for final layers, and scale if target
@@ -207,6 +206,8 @@ for epoch in range(max_epoch):
         optim.step()
         optim.zero_grad()
         # Enforce that each weight should have at least a minimal positive contribution
+        for p in model.weighted_avg.parameters():
+                p.data.clamp_(0.05) 
 
         if it % config['log_iter'] == config['log_iter'] - 1:
             train_loss = train_loss.item()
@@ -232,8 +233,7 @@ for epoch in range(max_epoch):
                     if ind[0].numel():
                         coords_local = coords[ind]
                         gt_local = gt[ind]
-                        dists_local = dist_to_center[ind]
-                        _,test_output = model(coords_local, i, dists_local)
+                        _,test_output = model(coords_local, i)
                         test_loss = 0
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
