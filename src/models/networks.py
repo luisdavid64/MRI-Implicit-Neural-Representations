@@ -293,7 +293,7 @@ class MultiHeadWrapper(nn.Module):
         output_dim = params['network_output_size']
         input_dim = params['network_input_size']
         config = {
-            "network_input_size": input_dim,
+            "network_input_size": 1,
             "network_output_size": no_heads,
             "network_depth": 2,           
             "network_width": 256,         
@@ -306,7 +306,7 @@ class MultiHeadWrapper(nn.Module):
         x = self.backbone(coords)
         out = []
         # Get radial distance
-        weights = self.weighted_avg(coords[:,-1])
+        weights = self.weighted_avg(coords[:,-1].unsqueeze(dim=-1))
         res = 0
         for i in range(self.no_heads):
             out.append(self.heads[i](x))
