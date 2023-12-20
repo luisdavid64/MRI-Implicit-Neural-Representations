@@ -171,30 +171,29 @@ def train(opts):
             coords, gt = coords.to(device), gt.to(device)
             coords = encoder.embedding(coords) # [bs, 2*embedding size]
             layer_outs, train_output = model(coords)
+            train_loss = 0
             for i in range(no_models):
                 r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
                 r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
                 ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
-                train_loss = 0
                 if ind[0].numel():
-                    train_output_local = train_output[ind]
                     gt_local = gt[ind]
                     for idx, out in enumerate(layer_outs):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
                         out_local = out[ind]
-                        multiplier = (1 if idx == i else 0.00001)
+                        multiplier = (1 if idx == i else 0.00000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
                         else:
-                            train_loss = 0.5 * multiplier * loss_fn(out_local, gt_local)
+                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)
 
-                    if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                        loss, _ = loss_fn(train_output_local, gt_local, coords.to(device))
-                        train_loss += loss
-                    else:
-                        train_loss += 0.5 * loss_fn(train_output_local, gt_local)
+            if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                loss, _ = loss_fn(train_output, gt, coords.to(device))
+                train_loss += loss
+            else:
+                train_loss += 0.5 * loss_fn(train_output, gt)
             train_loss.backward()
             running_loss += train_loss.item()
             optim.step()
