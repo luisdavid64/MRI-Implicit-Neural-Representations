@@ -180,7 +180,7 @@ for epoch in range(max_epoch):
             ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
             if ind[0].numel():
                 coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
-                layer_outs, train_output = model(coords_local, i, dists_local)
+                layer_outs, train_output = model(coords_local, i)
                 train_loss = 0
                 for idx, out in enumerate(layer_outs):
                     # Get gradients for final layers, and scale if target
@@ -223,7 +223,7 @@ for epoch in range(max_epoch):
                     ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                     if ind[0].numel():
                         coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
-                        _,test_output = model(coords_local, i, dists_local)
+                        _,test_output = model(coords_local, i)
                         test_loss = 0
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))

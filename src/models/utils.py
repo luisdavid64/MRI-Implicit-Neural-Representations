@@ -48,13 +48,17 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                         batch_size=batch_size, 
                         shuffle=shuffle, 
                         drop_last=False, 
-                        num_workers=num_workers)
+                        num_workers=num_workers,
+                        pin_memory=True
+                        )
 
     val_loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
                         shuffle=False, 
                         drop_last=False, 
-                        num_workers=num_workers)
+                        num_workers=num_workers,
+                        pin_memory=True
+                )
     return dataset, loader, val_loader
 
 
