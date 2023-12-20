@@ -121,7 +121,7 @@ def train(opts):
         shuffle=True,
         full_norm=config["full_norm"],
         normalization=config["normalization"],
-        use_dists="yes"
+        use_dists="labels"
     )
 
     _, part_radii = partition_kspace(
@@ -141,7 +141,7 @@ def train(opts):
 
     train_image = torch.zeros(((C*H*W),S)).to(device)
     # Reconstruct image from val
-    for it, (_, gt, _) in enumerate(val_loader):
+    for it, (_, gt, _, _) in enumerate(val_loader):
         train_image[it*bs:(it+1)*bs, :] = gt.to(device)
     train_image = train_image.reshape(C,H,W,S).cpu()
     k_space = torch.clone(train_image)
@@ -166,24 +166,20 @@ def train(opts):
     for epoch in range(max_epoch):
         model.train()
         running_loss = 0
-        for it, (coords, gt, dist_to_center) in enumerate(data_loader):
+        for it, (coords, gt, _, labels) in enumerate(data_loader):
             # Copy coordinates for HDR loss
             coords, gt = coords.to(device), gt.to(device)
             coords = encoder.embedding(coords) # [bs, 2*embedding size]
             for i in range(no_models):
-                r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
-                r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
-                # r_0 = part_radii[i]
-                # r_1 = part_radii[i+1]
-                ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+                ind = torch.where(labels == i)
                 if ind[0].numel():
-                    coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
+                    coords_local, gt_local = coords[ind], gt[ind]
                     layer_outs, train_output = model(coords_local)
                     train_loss = 0
                     for idx, out in enumerate(layer_outs):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
-                        multiplier = (1 if idx == i else 0.00001)
+                        multiplier = (1 if idx == i else 0.000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out, gt_local, coords.to(device))
                             train_loss += multiplier * loss
@@ -212,15 +208,14 @@ def train(opts):
             test_running_loss = 0
             im_recon = torch.zeros(((C*H*W),S))
             with torch.no_grad():
-                for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, _, labels) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords, gt = coords.to(device), gt.to(device)
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
                     batch_rec = torch.zeros(gt.shape)
                     for i in range(no_models):
-                        r_0, r_1 = part_radii[i], part_radii[i+1]
-                        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+                        ind = torch.where(labels == i)
                         if ind[0].numel():
-                            coords_local, gt_local, dists_local = coords[ind], gt[ind], dist_to_center[ind]
+                            coords_local, gt_local = coords[ind], gt[ind]
                             _,test_output = model(coords_local)
                             test_loss = 0
                             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
