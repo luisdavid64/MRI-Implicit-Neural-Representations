@@ -61,6 +61,7 @@ else:
     raise NotImplementedError
 model_back.to(device=device)
 model_back.train()
+model_back = None
 
 part_config = config["partition"]
 no_models = part_config["no_models"]
@@ -74,7 +75,8 @@ model = MultiHeadWrapper(
 )
 
 params = []
-params = params + list(model.backbone.parameters())
+if model.backbone:
+    params = params + list(model.backbone.parameters())
 for i in range(no_models):
     params = params + list(model.heads[i].parameters())
 params = params + list(model.weighted_avg.parameters())
