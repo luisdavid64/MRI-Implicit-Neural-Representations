@@ -3,13 +3,14 @@ log_iter: 5                 # How often to log the training loss
 val_epoch: 5               # How often to validate testing and save output images during training
 image_save_epoch: 400        # How often do you want to save output images during training
 display_image_num: 8
+num_workers: 2
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
 batch_size: 60000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0000001             # Weight decay
+weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
 lr: 0.00003                    # Initial learning rate
@@ -29,15 +30,15 @@ model: SIREN                  # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 512
-  network_depth: 4            # Depth of MLP layers
+  network_depth: 2            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: False             # Set this to true to use a tanh layer at the end
 
 subnets: 
-  no_heads: 4
+  no_heads: 3
   network_input_size: 512     # Input size for network
   network_output_size: 2
-  network_depth: 2            # Depth of MLP layers
+  network_depth: 4            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: True             # Set this to true to use a tanh layer at the end
 
@@ -49,7 +50,7 @@ encoder:
 
 partition:
   no_steps: 40
-  no_models: 4
+  no_models: 3
 
 
 
