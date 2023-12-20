@@ -166,6 +166,7 @@ def train(opts):
     for epoch in range(max_epoch):
         model.train()
         running_loss = 0
+        coords_local, gt_local = None, None
         for it, (coords, gt, _, labels) in enumerate(data_loader):
             # Copy coordinates for HDR loss
             coords, gt = coords.to(device), gt.to(device)
@@ -196,6 +197,7 @@ def train(opts):
                     running_loss += train_loss.item()
             optim.step()
             optim.zero_grad()
+            coords_local, gt_local = None, None
             # Enforce that each weight should have at least a minimal positive contribution
 
             if it % config['log_iter'] == config['log_iter'] - 1:
