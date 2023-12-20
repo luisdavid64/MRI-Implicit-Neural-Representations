@@ -179,7 +179,7 @@ def train(opts):
                     for idx, out in enumerate(layer_outs):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
-                        multiplier = (1 if idx == i else 0.000001)
+                        multiplier = (1 if idx == i else 0.00001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out, gt_local, coords.to(device))
                             train_loss += multiplier * loss
@@ -208,23 +208,18 @@ def train(opts):
             test_running_loss = 0
             im_recon = torch.zeros(((C*H*W),S))
             with torch.no_grad():
-                for it, (coords, gt, _, labels) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                # Separation of indices not needed for val
+                for it, (coords, gt, _, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords, gt = coords.to(device), gt.to(device)
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
-                    batch_rec = torch.zeros(gt.shape)
-                    for i in range(no_models):
-                        ind = torch.where(labels == i)
-                        if ind[0].numel():
-                            coords_local, gt_local = coords[ind], gt[ind]
-                            _,test_output = model(coords_local)
-                            test_loss = 0
-                            if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                                test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
-                            else:
-                                test_loss = 0.5 * loss_fn(test_output, gt_local)
-                            test_running_loss += test_loss.item()
-                            batch_rec[ind] = test_output.detach().cpu()
-                    im_recon[it*bs:(it+1)*bs, :] = batch_rec.detach().cpu()
+                    _,test_output = model(coords_local)
+                    test_loss = 0
+                    if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                        test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
+                    else:
+                        test_loss = 0.5 * loss_fn(test_output, gt_local)
+                    test_running_loss += test_loss.item()
+                    im_recon[it*bs:(it+1)*bs, :] = test_output.detach().cpu()
             im_recon = im_recon.view(C,H,W,S)
             if not in_image_space:
                 save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
