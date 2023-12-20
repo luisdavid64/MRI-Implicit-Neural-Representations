@@ -212,12 +212,12 @@ def train(opts):
                 for it, (coords, gt, _, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords, gt = coords.to(device), gt.to(device)
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
-                    _,test_output = model(coords_local)
+                    _,test_output = model(coords)
                     test_loss = 0
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                        test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
+                        test_loss, _ = loss_fn(test_output, gt, coords.to(device))
                     else:
-                        test_loss = 0.5 * loss_fn(test_output, gt_local)
+                        test_loss = 0.5 * loss_fn(test_output, gt)
                     test_running_loss += test_loss.item()
                     im_recon[it*bs:(it+1)*bs, :] = test_output.detach().cpu()
             im_recon = im_recon.view(C,H,W,S)
