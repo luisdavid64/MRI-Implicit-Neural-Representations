@@ -121,7 +121,7 @@ def train(opts):
         shuffle=True,
         full_norm=config["full_norm"],
         normalization=config["normalization"],
-        use_dists="labels"
+        use_dists="yes"
     )
 
     _, part_radii = partition_kspace(
@@ -141,7 +141,7 @@ def train(opts):
 
     train_image = torch.zeros(((C*H*W),S)).to(device)
     # Reconstruct image from val
-    for it, (_, gt, _, _) in enumerate(val_loader):
+    for it, (_, gt, _) in enumerate(val_loader):
         train_image[it*bs:(it+1)*bs, :] = gt.to(device)
     train_image = train_image.reshape(C,H,W,S).cpu()
     k_space = torch.clone(train_image)
@@ -166,38 +166,39 @@ def train(opts):
     for epoch in range(max_epoch):
         model.train()
         running_loss = 0
-        coords_local, gt_local = None, None
-        for it, (coords, gt, _, labels) in enumerate(data_loader):
+        for it, (coords, gt, dist_to_center) in enumerate(data_loader):
             # Copy coordinates for HDR loss
             coords, gt = coords.to(device), gt.to(device)
             coords = encoder.embedding(coords) # [bs, 2*embedding size]
+            layer_outs, train_output = model(coords)
             for i in range(no_models):
-                ind = torch.where(labels == i)
+                r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
+                r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
+                ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+                train_loss = 0
                 if ind[0].numel():
-                    coords_local, gt_local = coords[ind], gt[ind]
-                    layer_outs, train_output = model(coords_local)
-                    train_loss = 0
+                    train_output_local = train_output[ind]
+                    gt_local = gt[ind]
                     for idx, out in enumerate(layer_outs):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
+                        out_local = out[ind]
                         multiplier = (1 if idx == i else 0.00001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                            loss, _ = loss_fn(out, gt_local, coords.to(device))
+                            loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
                         else:
-                            train_loss = 0.5 * multiplier * loss_fn(out, gt_local)
+                            train_loss = 0.5 * multiplier * loss_fn(out_local, gt_local)
 
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                        loss, _ = loss_fn(train_output, gt_local, coords.to(device))
+                        loss, _ = loss_fn(train_output_local, gt_local, coords.to(device))
                         train_loss += loss
                     else:
-                        train_loss += 0.5 * loss_fn(train_output, gt_local)
-
-                    train_loss.backward()
-                    running_loss += train_loss.item()
+                        train_loss += 0.5 * loss_fn(train_output_local, gt_local)
+            train_loss.backward()
+            running_loss += train_loss.item()
             optim.step()
             optim.zero_grad()
-            coords_local, gt_local = None, None
             # Enforce that each weight should have at least a minimal positive contribution
 
             if it % config['log_iter'] == config['log_iter'] - 1:
@@ -211,7 +212,7 @@ def train(opts):
             im_recon = torch.zeros(((C*H*W),S))
             with torch.no_grad():
                 # Separation of indices not needed for val
-                for it, (coords, gt, _, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords, gt = coords.to(device), gt.to(device)
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
                     _,test_output = model(coords)
@@ -223,6 +224,7 @@ def train(opts):
                     test_running_loss += test_loss.item()
                     im_recon[it*bs:(it+1)*bs, :] = test_output.detach().cpu()
             im_recon = im_recon.view(C,H,W,S)
+
             if not in_image_space:
                 save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
                 # Plot relative error

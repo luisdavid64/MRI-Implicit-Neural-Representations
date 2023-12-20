@@ -379,6 +379,9 @@ class MRIDataset(Dataset):
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
 
+
+# Some Dataset variations including different data
+
 class MRIDatasetWithDistances(MRIDataset):
     def __init__(self, 
                  data_class='brain', 
