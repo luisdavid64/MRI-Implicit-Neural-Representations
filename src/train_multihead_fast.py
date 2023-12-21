@@ -132,9 +132,10 @@ def train(opts):
         no_parts=part_config["no_models"],
         show=False,
     )
+    mx = torch.pow(mx,1/3)
     print("Kmeans Radial partitioning:")
     print(part_radii / sqrt(2))
-    print("Max per cluster:")
+    print("Scaled Max per Cluster:")
     print(mx)
 
 
@@ -189,16 +190,16 @@ def train(opts):
                         # Renormalize with 1!
                         multiplier = (1 if idx == i else 0.00000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                            loss, _ = loss_fn(out_local, gt_local, coords.to(device))/mx[idx]
+                            loss, _ = loss_fn(out_local, gt_local, coords.to(device))/mx[i]
                             train_loss += multiplier * loss
                         else:
-                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)/mx[idx]
+                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)/mx[i]
 
             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                loss, _ = loss_fn(train_output, gt, coords.to(device))
+                loss, _ = loss_fn(train_output, gt, coords.to(device))/mx[i]
                 train_loss += loss
             else:
-                train_loss += 0.5 * loss_fn(train_output, gt)
+                train_loss += 0.5 * loss_fn(train_output, gt)/mx[i]
             train_loss.backward()
             running_loss += train_loss.item()
             optim.step()
