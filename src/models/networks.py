@@ -291,7 +291,7 @@ class MultiHeadWrapper(nn.Module):
             self.heads.append(SIREN(params).to(device=device))
         # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
         config = {
-            "network_input_size": 1,
+            "network_input_size": params["network_input_size"],
             "network_output_size": no_heads,
             "network_depth": 2,           
             "network_width": 256,         
@@ -305,7 +305,7 @@ class MultiHeadWrapper(nn.Module):
         if self.backbone:
             x = self.backbone(x)
         # Get radial distance
-        weights = self.weighted_avg(coords[:,-1].unsqueeze(dim=-1))
+        weights = self.weighted_avg(coords)
         res = 0
         out = [head(x) for head in self.heads]
         res = torch.sum(weights.unsqueeze(1) * torch.stack(out, dim=2), dim=2)
