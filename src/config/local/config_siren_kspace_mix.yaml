@@ -51,6 +51,7 @@ encoder:
 partition:
   no_steps: 40
   no_models: 3
+  expansion: 0.15
 
 
 

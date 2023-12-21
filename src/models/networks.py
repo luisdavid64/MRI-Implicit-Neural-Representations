@@ -291,7 +291,7 @@ class MultiHeadWrapper(nn.Module):
         config = {
             "network_input_size": params["network_input_size"],
             "network_output_size": no_heads,
-            "network_depth": 2,           
+            "network_depth": 3,           
             "network_width": 512,         
         }
         self.weighted_avg = FFN(config).to(device=device)
