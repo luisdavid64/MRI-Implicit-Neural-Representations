@@ -13,11 +13,8 @@ from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 from math import sqrt
-from clustering import partition_kspace, partition_and_stats
+from clustering import partition_and_stats
 import numpy as np
-
-def batch_max(gt):
-    return torch.abs(gt).max()
 
 def train(opts):
     # Load experiment setting
@@ -206,7 +203,7 @@ def train(opts):
                         # Make hyperparam is better probs
                         out_local = out[ind]
                         # Renormalize with 1!
-                        multiplier = (1 if idx == i else 0.00000001)
+                        multiplier = (1/mx[i] if idx == i else 0.00000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
@@ -273,7 +270,6 @@ def train(opts):
             model_name = os.path.join(checkpoint_directory, 'model_%06d.pt' % (epoch + 1))
             torch.save({'net': model.state_dict(), \
                         'enc': encoder.B, \
-                        'opt': optim.state_dict(), \
                         }, model_name)
         for s in scheduler:
             s.step()
