@@ -292,7 +292,7 @@ class MultiHeadWrapper(nn.Module):
             "network_input_size": params["network_input_size"],
             "network_output_size": no_heads,
             "network_depth": 2,           
-            "network_width": 256,         
+            "network_width": 512,         
         }
         self.weighted_avg = FFN(config).to(device=device)
         self.last_tanh = last_tanh
