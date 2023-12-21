@@ -3,8 +3,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
-
 ############ Input Positional Encoding ############
 class Positional_Encoder():
     def __init__(self, params, device):

@@ -7,13 +7,13 @@ num_workers: 2
 
 # Optimization options
 max_epoch: 1000                # Maximum number of training iterations
-batch_size: 160000            # Batch size (320x320)
+batch_size: 80000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0             # Weight decay
+weight_decay: 0.0000001             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00003                    # Initial learning rate
+lr: 0.0001                    # Initial learning rate
 
 
 ############### Loss modifications ################
