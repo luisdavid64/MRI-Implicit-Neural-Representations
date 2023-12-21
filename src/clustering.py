@@ -76,7 +76,8 @@ def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_
     if dataset:
         C,H,W,S = dataset.shape
         img = dataset.image.reshape(C,H,W,S)
-        kcoords = dataset.coords.reshape(C,H,W,3)
+        _,K = dataset.coords.shape
+        kcoords = dataset.coords.reshape(C,H,W,K)
     _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
     dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
     stats = []
