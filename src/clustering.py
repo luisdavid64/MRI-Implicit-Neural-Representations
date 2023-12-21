@@ -91,7 +91,7 @@ def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_
         else:
             st = torch.abs(img[ind]).max()
             stats.append(st)
-    return stats, radii
+    return torch.stack(stats), radii
         
 def partition_pseudo_label(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
     if dataset == None and (img == None or kcoords == None):
