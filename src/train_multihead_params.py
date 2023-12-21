@@ -65,6 +65,7 @@ def train(opts):
     part_config = config["partition"]
     no_models = part_config["no_models"]
     no_steps = part_config["no_steps"]
+    expand = part_config["expansion"]
 
     model = MultiHeadWrapper(
         backbone=model_back,
@@ -195,8 +196,8 @@ def train(opts):
             
             train_loss = 0
             for i in range(no_models):
-                r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
-                r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
+                r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, expand)))
+                r_1 = part_radii[i+1] + np.abs(np.random.normal(0, expand))
                 ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                 if ind[0].numel():
                     gt_local = gt[ind]
