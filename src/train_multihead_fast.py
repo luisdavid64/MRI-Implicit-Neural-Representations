@@ -13,7 +13,7 @@ from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 from math import sqrt
-from clustering import partition_kspace
+from clustering import partition_kspace, partition_and_stats
 import numpy as np
 
 def batch_max(gt):
@@ -126,7 +126,7 @@ def train(opts):
         use_dists="yes"
     )
 
-    _, part_radii = partition_kspace(
+    mx, part_radii = partition_and_stats(
         dataset=dataset, 
         no_steps=part_config["no_steps"],
         no_parts=part_config["no_models"],
@@ -134,6 +134,8 @@ def train(opts):
     )
     print("Kmeans Radial partitioning:")
     print(part_radii / sqrt(2))
+    print("Max per cluster:")
+    print(mx)
 
 
     bs = config["batch_size"]
@@ -180,7 +182,6 @@ def train(opts):
                 ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                 if ind[0].numel():
                     gt_local = gt[ind]
-                    mx = batch_max(gt_local)
                     for idx, out in enumerate(layer_outs):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
@@ -188,10 +189,10 @@ def train(opts):
                         # Renormalize with 1!
                         multiplier = (1 if idx == i else 0.00000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                            loss, _ = loss_fn(out_local, gt_local, coords.to(device))/mx
+                            loss, _ = loss_fn(out_local, gt_local, coords.to(device))/mx[idx]
                             train_loss += multiplier * loss
                         else:
-                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)/mx
+                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)/mx[idx]
 
             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                 loss, _ = loss_fn(train_output, gt, coords.to(device))
