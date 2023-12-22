@@ -68,7 +68,8 @@ def train(opts):
         backbone=model_back,
         no_heads=no_models,
         params=config["subnets"],
-        device=device
+        device=device,
+        detach_outs=True
     )
 
     params = []
@@ -188,7 +189,7 @@ def train(opts):
                         # Make hyperparam is better probs
                         out_local = out[ind]
                         # Renormalize with 1!
-                        multiplier = (1/mx[i] if idx == i else 0.00000001)
+                        multiplier = (1 if idx == i else 0.00000001)/mx[i]
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
@@ -260,7 +261,7 @@ def train(opts):
             model_name = os.path.join(checkpoint_directory, 'model_%06d.pt' % (epoch + 1))
             torch.save({'net': model.state_dict(), \
                         'enc': encoder.B, \
-                        # 'opt': optim.state_dict(), \
+                        'opt': optim.state_dict(), \
                         }, model_name)
         scheduler.step()
 

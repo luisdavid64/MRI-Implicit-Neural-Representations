@@ -68,7 +68,8 @@ def train(opts):
         backbone=model_back,
         no_heads=no_models,
         params=config["subnets"],
-        device=device
+        device=device,
+        detach_outs=False
     )
 
     params_1 = []

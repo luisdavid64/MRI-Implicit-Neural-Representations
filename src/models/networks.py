@@ -310,7 +310,8 @@ class MultiHeadWrapper(nn.Module):
         out = [head(x) for head in self.heads]
         if self.detach_outs:
             # Detach out to prevent gradients from updating other networks
-            out_detached = [o.detach().clone().requires_grad_(True) for o in out]
+            out_detached = [o.detach().requires_grad_(True) for o in out]
+            # out_detached = [o.detach().clone().requires_grad_(True) for o in out]
             res = torch.sum(weights.unsqueeze(1) * torch.stack(out_detached, dim=2), dim=2)
         else:
             #alternatively, just use outs for grads
@@ -318,7 +319,8 @@ class MultiHeadWrapper(nn.Module):
 
         # Constrain range
         if self.last_tanh:
-            res = torch.tanh(res)
+            # res = torch.tanh(res)
+            res = torch.clamp(res,min=-1, max=1)
 
         # res = self.weighted_avg(out, weight_idx)
         # Get overall result and final output
