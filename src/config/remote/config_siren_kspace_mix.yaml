@@ -6,7 +6,7 @@ display_image_num: 8
 num_workers: 4
 
 # Optimization options
-max_epoch: 1000                # Maximum number of training iterations
+max_epoch: 4000                # Maximum number of training iterations
 batch_size: 160000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
