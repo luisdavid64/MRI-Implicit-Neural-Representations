@@ -278,7 +278,8 @@ class MultiHeadWrapper(nn.Module):
                  no_heads=4,
                  params=None,
                  device="cpu",
-                 last_tanh=True
+                 last_tanh=True,
+                 detach_outs=True
                 ):
         super().__init__()
         self.backbone = backbone
@@ -296,6 +297,7 @@ class MultiHeadWrapper(nn.Module):
         }
         self.weighted_avg = FFN(config).to(device=device)
         self.last_tanh = last_tanh
+        self.detach_outs = detach_outs
         # self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
     
     def forward(self, coords):
@@ -306,7 +308,14 @@ class MultiHeadWrapper(nn.Module):
         weights = self.weighted_avg(coords)
         res = 0
         out = [head(x) for head in self.heads]
-        res = torch.sum(weights.unsqueeze(1) * torch.stack(out, dim=2), dim=2)
+        if self.detach_outs:
+            # Detach out to prevent gradients from updating other networks
+            out_detached = [o.detach().clone().requires_grad_(True) for o in out]
+            res = torch.sum(weights.unsqueeze(1) * torch.stack(out_detached, dim=2), dim=2)
+        else:
+            #alternatively, just use outs for grads
+            res = torch.sum(weights.unsqueeze(1) * torch.stack(out, dim=2), dim=2)
+
         # Constrain range
         if self.last_tanh:
             res = torch.tanh(res)
