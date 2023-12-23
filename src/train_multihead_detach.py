@@ -89,6 +89,8 @@ def train(opts):
     # Setup loss functions
     if config['loss'] == 'L2':
         loss_fn = torch.nn.MSELoss()
+    if config['loss'] == 'smoothL1':
+        loss_fn = torch.nn.SmoothL1Loss()
     if config['loss'] == 'T':
         loss_fn = TLoss()
     if config['loss'] == 'LSL':
@@ -195,12 +197,12 @@ def train(opts):
                             loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
                         else:
-                            train_loss += 0.5 * multiplier * loss_fn(out_local, gt_local)
+                            train_loss += multiplier * loss_fn(out_local, gt_local)
             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                 loss, _ = loss_fn(train_output, gt, coords.to(device))
                 train_loss += loss
             else:
-                train_loss += 0.5 * loss_fn(train_output, gt)
+                train_loss +=  loss_fn(train_output, gt)
             optim.zero_grad()
             train_loss.backward()
             optim.step()
@@ -227,7 +229,7 @@ def train(opts):
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                         test_loss, _ = loss_fn(test_output, gt, coords.to(device))
                     else:
-                        test_loss = 0.5 * loss_fn(test_output, gt)
+                        test_loss = loss_fn(test_output, gt)
                     test_running_loss += test_loss.item()
                     im_recon[it*bs:(it+1)*bs, :] = test_output.detach().cpu()
             im_recon = im_recon.view(C,H,W,S)
