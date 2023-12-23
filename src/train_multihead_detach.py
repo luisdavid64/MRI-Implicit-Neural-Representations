@@ -175,12 +175,13 @@ def train(opts):
         for it, (coords, gt, dist_to_center) in enumerate(data_loader):
             # Copy coordinates for HDR loss
             coords, gt = coords.to(device), gt.to(device)
+            dist_to_center = dist_to_center.to(device)
             coords = encoder.embedding(coords) # [bs, 2*embedding size]
-            layer_outs, train_output = model(coords)
+            layer_outs, train_output = model(coords, dist_to_center)
             train_loss = 0
             for i in range(no_models):
-                r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, expand)))
-                r_1 = part_radii[i+1] + np.abs(np.random.normal(0, expand))
+                r_0 = part_radii[i] - expand
+                r_1 = part_radii[i+1] + expand
                 ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
                 if ind[0].numel():
                     gt_local = gt[ind]
@@ -217,10 +218,11 @@ def train(opts):
             im_recon = torch.zeros(((C*H*W),S))
             with torch.no_grad():
                 # Separation of indices not needed for val
-                for it, (coords, gt, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords, gt = coords.to(device), gt.to(device)
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
-                    _,test_output = model(coords)
+                    dist_to_center = dist_to_center.to(device)
+                    _,test_output = model(coords, dist_to_center)
                     test_loss = 0
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                         test_loss, _ = loss_fn(test_output, gt, coords.to(device))

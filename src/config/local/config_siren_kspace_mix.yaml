@@ -30,7 +30,7 @@ model: SIREN                  # Options for MLP models [FFN | SIREN]
 net: 
   network_input_size: 512     # Input size for network
   network_output_size: 512
-  network_depth: 2            # Depth of MLP layers
+  network_depth: 1            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: False             # Set this to true to use a tanh layer at the end
 
@@ -38,7 +38,7 @@ subnets:
   no_heads: 3
   network_input_size: 512     # Input size for network
   network_output_size: 2
-  network_depth: 4            # Depth of MLP layers
+  network_depth: 3            # Depth of MLP layers
   network_width: 512          # Width of MLP layers
   last_tanh: True             # Set this to true to use a tanh layer at the end
 

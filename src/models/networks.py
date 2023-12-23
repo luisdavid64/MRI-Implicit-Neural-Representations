@@ -290,22 +290,22 @@ class MultiHeadWrapper(nn.Module):
             self.heads.append(SIREN(params).to(device=device))
         # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
         config = {
-            "network_input_size": params["network_input_size"],
+            "network_input_size": 1,
             "network_output_size": no_heads,
             "network_depth": 3,           
-            "network_width": 512,         
+            "network_width": 64,         
         }
         self.weighted_avg = FFN(config).to(device=device)
         self.last_tanh = last_tanh
         self.detach_outs = detach_outs
         # self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
     
-    def forward(self, coords):
+    def forward(self, coords, dist_to_center):
         x = coords
         if self.backbone:
             x = self.backbone(x)
         # Get radial distance
-        weights = self.weighted_avg(coords)
+        weights = self.weighted_avg(dist_to_center.unsqueeze(dim=-1))
         res = 0
         out = [head(x) for head in self.heads]
         if self.detach_outs:

@@ -35,7 +35,7 @@ net:
   last_tanh: False             # Set this to true to use a tanh layer at the end
 
 subnets: 
-  no_heads: 4
+  no_heads: 3
   network_input_size: 512     # Input size for network
   network_output_size: 2
   network_depth: 4            # Depth of MLP layers
@@ -50,7 +50,7 @@ encoder:
 
 partition:
   no_steps: 40
-  no_models: 4
+  no_models: 3
   expansion: 0.15
 
 
