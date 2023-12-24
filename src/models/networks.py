@@ -326,3 +326,52 @@ class MultiHeadWrapper(nn.Module):
         # Get overall result and final output
         return out, res
 
+class MultiHeadWrapperLossEnsemble(nn.Module):
+    def __init__(self, 
+                 backbone=None,
+                 no_heads=4,
+                 params=None,
+                 device="cpu",
+                 last_tanh=True,
+                 detach_outs=True
+                ):
+        super().__init__()
+        self.backbone = backbone
+        self.no_heads = 2*params["no_heads"]
+        assert no_heads > 0
+        self.heads = []
+        for _ in range(self.no_heads):
+            self.heads.append(SIREN(params).to(device=device))
+        # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
+        config = {
+            "network_input_size": 512,
+            "network_output_size": self.no_heads,
+            "network_depth": 3,           
+            "network_width": 256,         
+        }
+        self.weighted_avg = FFN(config).to(device=device)
+        self.last_tanh = last_tanh
+        self.detach_outs = detach_outs
+        # self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
+    def forward(self, coords, dist_to_center):
+        x = coords
+        if self.backbone:
+            x = self.backbone(x)
+        # Get radial distance
+        weights = self.weighted_avg(x)
+        res = 0
+        out = [head(x) for head in self.heads]
+        if self.detach_outs:
+            # Detach out to prevent gradients from updating other networks
+            out_detached = [o.detach().requires_grad_(True) for o in out]
+            # out_detached = [o.detach().clone().requires_grad_(True) for o in out]
+            res = torch.sum(weights.unsqueeze(1) * torch.stack(out_detached, dim=2), dim=2)
+        else:
+            #alternatively, just use outs for grads
+            res = torch.sum(weights.unsqueeze(1) * torch.stack(out, dim=2), dim=2)
+
+        # Constrain range
+        if self.last_tanh:
+            # res = torch.tanh(res)
+            res = torch.clamp(res,min=-1, max=1)
+        return out, res
