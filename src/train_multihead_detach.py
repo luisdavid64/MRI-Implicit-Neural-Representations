@@ -11,7 +11,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN, MultiHeadWrapper
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
 from math import sqrt
 from clustering import partition_and_stats
 import numpy as np
@@ -91,6 +91,8 @@ def train(opts):
         loss_fn = torch.nn.MSELoss()
     if config['loss'] == 'smoothL1':
         loss_fn = torch.nn.SmoothL1Loss()
+    if config['loss'] == 'MSLE':
+        loss_fn = MSLELoss()
     if config['loss'] == 'T':
         loss_fn = TLoss()
     if config['loss'] == 'LSL':

@@ -13,6 +13,15 @@ class RadialL2Loss(torch.nn.Module):
         loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
         return loss
 
+class MSLELoss(torch.nn.Module):
+    def __init__(self, eps=1e-9):
+        super(MSLELoss, self).__init__()
+        self.eps = eps
+    def forward(self, x, y):
+        loss = torch.nn.functional.mse_loss(torch.log(x+1+self.eps),torch.log(y+1 +self.eps))
+        # Magnitude loss
+        # loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
+        return loss
 
 
 class TLoss(torch.nn.Module):
