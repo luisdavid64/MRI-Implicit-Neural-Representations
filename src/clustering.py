@@ -60,7 +60,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     radii = np.array(radii)
 
     # Make sure last one covers entire range
-    radii[no_parts] = 2
+    radii[no_parts] = 5
     # We can ignore the Coil as not relevant
     if show:
         clustered = np.zeros((C,H,W))
