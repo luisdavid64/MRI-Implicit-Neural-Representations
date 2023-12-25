@@ -190,8 +190,8 @@ def train(opts):
                         # Get gradients for final layers, and scale if target
                         # Make hyperparam is better probs
                         id = idx //2
-                        out_local_center = layer_outs[i][ind]
-                        out_local_periphery = layer_outs[i+1][ind]
+                        out_local_center = layer_outs[id][ind]
+                        out_local_periphery = layer_outs[id+1][ind]
                         # Renormalize with 1!
                         multiplier = (1 if id == i else 0.00000001)
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
