@@ -67,7 +67,7 @@ def train(opts):
         raise NotImplementedError
     model_back.to(device=device)
     model_back.train()
-    model_back = None
+    # model_back = None
 
     part_config = config["partition"]
     no_models = part_config["no_models"]
