@@ -290,10 +290,10 @@ class MultiHeadWrapper(nn.Module):
             self.heads.append(SIREN(params).to(device=device))
         # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
         config = {
-            "network_input_size": 1,
+            "network_input_size": 2,
             "network_output_size": no_heads,
-            "network_depth": 3,           
-            "network_width": 64,         
+            "network_depth": 5,           
+            "network_width": 128,         
         }
         self.weighted_avg = FFN(config).to(device=device)
         self.last_tanh = last_tanh
