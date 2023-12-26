@@ -387,7 +387,7 @@ class ScalerWrapper(nn.Module):
         config = {
             "network_input_size": 2,
             "network_output_size": 1,
-            "network_depth": 4,           
+            "network_depth": 8,           
             "network_width": 512,         
         }
         self.scaler = FFN(config).to(device=device)
@@ -399,6 +399,6 @@ class ScalerWrapper(nn.Module):
             x = self.backbone(x)
         # Get radial distance
         scales = self.scaler(dist_to_center)
-        scales = torch.clamp(scales, min=0, max=1)
+        # scales = torch.clamp(scales, min=0, max=1)
         res = x * torch.exp(-scales)
         return res
