@@ -305,7 +305,7 @@ class MultiHeadWrapper(nn.Module):
         if self.backbone:
             x = self.backbone(x)
         # Get radial distance
-        weights = self.weighted_avg(dist_to_center.unsqueeze(dim=-1))
+        weights = self.weighted_avg(dist_to_center)
         res = 0
         out = [head(x) for head in self.heads]
         if self.detach_outs:
