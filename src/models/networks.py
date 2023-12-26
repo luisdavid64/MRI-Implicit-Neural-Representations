@@ -375,3 +375,30 @@ class MultiHeadWrapperLossEnsemble(nn.Module):
             # res = torch.tanh(res)
             res = torch.clamp(res,min=-1, max=1)
         return out, res
+
+class ScalerWrapper(nn.Module):
+    def __init__(self, 
+                 backbone=None,
+                 device="cpu",
+                 last_tanh=True,
+                ):
+        super().__init__()
+        self.backbone = backbone
+        config = {
+            "network_input_size": 2,
+            "network_output_size": 1,
+            "network_depth": 4,           
+            "network_width": 512,         
+        }
+        self.scaler = FFN(config).to(device=device)
+        self.last_tanh = last_tanh
+        # self.weighted_avg = nn.Linear(no_heads*output_dim+1, 2).to(device=device)
+    def forward(self, coords, dist_to_center):
+        x = coords
+        if self.backbone:
+            x = self.backbone(x)
+        # Get radial distance
+        scales = self.scaler(dist_to_center)
+        scales = torch.clamp(scales, min=0, max=1)
+        res = x * torch.exp(-scales)
+        return res

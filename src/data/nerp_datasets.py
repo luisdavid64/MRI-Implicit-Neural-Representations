@@ -394,7 +394,8 @@ class MRIDatasetWithDistances(MRIDataset):
                  custom_file_or_path = None,
                  per_coil_stats=True,
                  centercrop=True,
-                 normalization="max"
+                 normalization="max",
+                 cat_coil=True
                  ):
         super().__init__(
                  data_class, 
@@ -412,11 +413,15 @@ class MRIDatasetWithDistances(MRIDataset):
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
         self.coords = torch.cat((self.coords,self.dist_to_center.unsqueeze(dim=-1)),dim=-1)
+        self.cat_coil = cat_coil
 
     def __getitem__(self, idx):
-        return self.coords[idx], self.image[idx], self.dist_to_center[idx]
+        if self.cat_coil:
+            return self.coords[idx], self.image[idx], self.coords[idx,[0,-1]]
+        else: 
+            return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
-class MRIDatasetWithDistancesAndLabels(MRIDataset):
+class MRIDatasetDistanceAndAngle(MRIDataset):
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -445,16 +450,15 @@ class MRIDatasetWithDistancesAndLabels(MRIDataset):
                  normalization
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
-        self.coords = torch.cat((self.coords,self.dist_to_center.unsqueeze(dim=-1)),dim=-1)
-        self.total_length = len(self.dist_to_center)
-        self.labels = torch.zeros(self.dist_to_center.shape)
+        self.angle = torch.arctan(self.coords[...,1]/self.coords[...,2])
+        # coil, distance, angle
+        self.coords = torch.stack([self.coords[...,0], self.dist_to_center, self.angle], dim=-1)
 
-    def set_partitions(self, part_radii):
-        for i in range(len(part_radii-1)):
-            r_0 = part_radii[i] 
-            r_1 = part_radii[i+1]
-            ind = torch.where((self.dist_to_center >= r_0) & (self.dist_to_center <= r_1))
-            self.labels[ind] = i
+    def reset_distances(self, part_radii):
+        first = part_radii[1]
+        self.coords[...,1] = self.coords[...,1] - first
+        self.coords[...,1] = self.coords[...,1] / self.coords[...,1].max()
+        self.coords[...,2] = self.coords[...,2] / self.coords[...,2].max()
 
 
 

@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetWithDistances, MRIDatasetWithDistancesAndLabels
+from data.nerp_datasets import MRIDataset, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,7 +41,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
     if use_dists == "yes":
         MRIData = MRIDatasetWithDistances
     elif use_dists == "labels":
-        MRIData = MRIDatasetWithDistancesAndLabels
+        MRIData = MRIDatasetDistanceAndAngle
 
     if data in ['brain', 'knee']:
         dataset = MRIData(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
