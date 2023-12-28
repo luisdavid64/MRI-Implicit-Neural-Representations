@@ -156,6 +156,7 @@ class GaborLayer(nn.Module):
     def __init__(self, in_features, out_features, weight_scale, alpha=1.0, beta=1.0, with_dist_filtering=False):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features)
+        self.with_dist_filtering = with_dist_filtering
         if self.with_dist_filtering:
             self.mu = nn.Parameter(2 * torch.rand(out_features, 2) - 1)
         else:

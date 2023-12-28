@@ -38,10 +38,8 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                     num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", use_dists="no"):
     
     MRIData = MRIDataset
-    if use_dists == "yes":
+    if use_dists == "yes" or use_dists == True:
         MRIData = MRIDatasetWithDistances
-    elif use_dists == "labels":
-        MRIData = MRIDatasetDistanceAndAngle
 
     if data in ['brain', 'knee']:
         dataset = MRIData(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)

@@ -9,7 +9,7 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
-from models.mfn import GaborNet, FourierNet
+from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
@@ -59,6 +59,8 @@ elif config['model'] == 'Fourier':
     model = FourierNet(config['net'])
 elif config['model'] == 'Gabor':
     model = GaborNet(config['net'])
+elif config['model'] == 'KGabor':
+    model = KGaborNet(config['net'])
 else:
     raise NotImplementedError
 model.to(device=device)
@@ -107,7 +109,8 @@ dataset, data_loader, val_loader = get_data_loader(
     slice=config["slice"],
     shuffle=True,
     full_norm=config["full_norm"],
-    normalization=config["normalization"]
+    normalization=config["normalization"],
+    use_dists="yes"
 )
 
 bs = config["batch_size"]
@@ -117,7 +120,7 @@ print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
-for it, (coords, gt) in enumerate(val_loader):
+for it, (coords, gt, _) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
@@ -142,14 +145,18 @@ print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
     running_loss = 0
-    for it, (coords, gt) in enumerate(data_loader):
+    for it, (coords, gt, dist_to_center) in enumerate(data_loader):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
+        train_output = None
+        if config["model"] == "KGabor":
+            train_output = model(coords, dist_to_center)  # [bs, 2]
+        else:
+            train_output = model(coords)  # [bs, 2]
         optim.zero_grad()
-        train_output = model(coords)  # [bs, 2]
         train_loss = 0
         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
             train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
@@ -171,12 +178,16 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
+            for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = model(coords)  # [bs, 2]
+                test_output = None
+                if config["model"] == "KGabor":
+                    test_output = model(coords, dist_to_center)  # [bs, 2]
+                else:
+                    test_output = model(coords)  # [bs, 2]
                 test_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                     test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
