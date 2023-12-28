@@ -9,6 +9,7 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
+from models.mfn import GaborNet, FourierNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
@@ -54,6 +55,10 @@ elif config['model'] == 'WIRE2D':
     model = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
     model = FFN(config['net'])
+elif config['model'] == 'Fourier':
+    model = FourierNet(config['net'])
+elif config['model'] == 'Gabor':
+    model = GaborNet(config['net'])
 else:
     raise NotImplementedError
 model.to(device=device)
