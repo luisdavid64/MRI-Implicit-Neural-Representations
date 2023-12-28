@@ -91,8 +91,6 @@ class SirenLayer(nn.Module):
     def forward(self, x):
         x = self.linear(x)
         # Use tanh to squeeze output to -1,1
-        if self.last_tanh:
-            return torch.tanh(x)
         return x if self.is_last else torch.sin(self.w0 * x)
 
 
@@ -110,6 +108,7 @@ class SIREN(nn.Module):
         last_tanh = False
         if "last_tanh" in params:
             last_tanh = params["last_tanh"]
+        self.last_tanh = last_tanh
 
         layers = [SirenLayer(input_dim, hidden_dim, is_first=True)]
         for i in range(1, num_layers - 1):
@@ -120,6 +119,8 @@ class SIREN(nn.Module):
 
     def forward(self, x):
         out = self.model(x)
+        if self.last_tanh:
+            return torch.tanh(x)
 
         return out
 
