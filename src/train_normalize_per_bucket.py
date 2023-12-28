@@ -22,7 +22,7 @@ def scale_space(stats, img, dist, parts):
     for i in range(len(parts) - 1):
         r_0 = parts[i] 
         r_1 = parts[i+1]
-        ind = torch.where((dist >= r_0) & (dist <= r_1))
+        ind = torch.where((dist >= r_0) & (dist < r_1))
         img[ind] = img[ind] / stats[i]
     return img
 
