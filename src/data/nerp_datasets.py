@@ -395,7 +395,8 @@ class MRIDatasetWithDistances(MRIDataset):
                  per_coil_stats=True,
                  centercrop=True,
                  normalization="max",
-                 cat_coil=True
+                 cat_coil=True,
+                 cat_dists=False
                  ):
         super().__init__(
                  data_class, 
@@ -409,10 +410,11 @@ class MRIDatasetWithDistances(MRIDataset):
                  custom_file_or_path,
                  per_coil_stats,
                  centercrop,
-                 normalization
+                 normalization,
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
-        self.coords = torch.cat((self.coords,self.dist_to_center.unsqueeze(dim=-1)),dim=-1)
+        if cat_dists:
+            self.coords = torch.cat((self.coords,self.dist_to_center.unsqueeze(dim=-1)),dim=-1)
         self.cat_coil = cat_coil
 
     def __getitem__(self, idx):

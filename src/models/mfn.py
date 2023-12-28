@@ -153,12 +153,11 @@ class GaborLayer(nn.Module):
     Gabor-like filter as used in GaborNet.
     """
 
-    def __init__(self, in_features, out_features, weight_scale, alpha=1.0, beta=1.0):
+    def __init__(self, in_features, out_features, weight_scale, alpha=1.0, beta=1.0, with_dist_filtering=False):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features)
-        self.with_dist_filtering = True
         if self.with_dist_filtering:
-            self.mu = nn.Parameter(2 * torch.rand(out_features, 1) - 1)
+            self.mu = nn.Parameter(2 * torch.rand(out_features, 2) - 1)
         else:
             self.mu = nn.Parameter(2 * torch.rand(out_features, in_features) - 1)
         self.gamma = nn.Parameter(
@@ -168,10 +167,9 @@ class GaborLayer(nn.Module):
         self.linear.bias.data.uniform_(-np.pi, np.pi)
         return
 
-    def forward(self, x):
+    def forward(self, x, dist_to_center=None):
         if self.with_dist_filtering:
             # Normalize by div by 2
-            dist_to_center = torch.sqrt((x[...,1]**2 + x[...,2]**2)).unsqueeze(dim=-1) / math.sqrt(2)
             D = (
                 (dist_to_center ** 2).sum(-1)[..., None]
                 + (self.mu ** 2).sum(-1)[None, :]
@@ -216,3 +214,45 @@ class GaborNet(MFNBase):
                 for _ in range(n_layers + 1)
             ]
         )
+
+class KGaborNet(MFNBase):
+    def __init__(
+        self,
+        params,
+        input_scale=2,
+        weight_scale=1.0,
+        alpha=6.0,
+        beta=1.0,
+        bias=True,
+        output_act=False,
+    ):
+        n_layers = params['network_depth']
+        hidden_size = params['network_width']
+        in_size = params['network_input_size']
+        out_size = params['network_output_size'] 
+        super().__init__(
+            hidden_size, out_size, n_layers, weight_scale, bias, output_act
+        )
+        self.filters = nn.ModuleList(
+            [
+                GaborLayer(
+                    in_size,
+                    hidden_size,
+                    input_scale / np.sqrt(n_layers + 1),
+                    alpha / (n_layers + 1),
+                    beta,
+                )
+                for _ in range(n_layers + 1)
+            ]
+        )
+
+    def forward(self, x, dist_to_center):
+        out = self.filters[0](x)
+        for i in range(1, len(self.filters)):
+            out = self.filters[i](x, dist_to_center) * self.linear[i - 1](out)
+        out = self.output_linear(out)
+
+        if self.output_act:
+            out = torch.sin(out)
+
+        return out

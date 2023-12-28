@@ -7,7 +7,7 @@ display_image_num: 8
 # Optimization options
 max_epoch: 3000                # Maximum number of training iterations
 batch_size: 30000            # Batch size (320x320)
-loss: tanh
+loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
@@ -25,7 +25,7 @@ loss_opts:
 
 ################## 3D CT Image ###################
 # Model options (3D CT)
-model: Gabor                  # Options for MLP models [FFN | SIREN]
+model: Fourier                  # Options for MLP models [FFN | SIREN]
 # pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
 net: 
   network_input_size: 512     # Input size for network
