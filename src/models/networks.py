@@ -276,6 +276,7 @@ class MultiHeadWrapper(nn.Module):
     def __init__(self, 
                  backbone=None,
                  no_heads=4,
+                 subnet_type=SIREN,
                  params=None,
                  device="cpu",
                  last_tanh=True,
@@ -287,7 +288,7 @@ class MultiHeadWrapper(nn.Module):
         assert no_heads > 0
         self.heads = []
         for _ in range(self.no_heads):
-            self.heads.append(SIREN(params).to(device=device))
+            self.heads.append(subnet_type(params).to(device=device))
         # self.weighted_avg = LinearWeightedAvg(no_heads, no_heads, device).to(device=device)
         config = {
             "network_input_size": 2,

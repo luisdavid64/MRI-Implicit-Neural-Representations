@@ -396,7 +396,7 @@ class MRIDatasetWithDistances(MRIDataset):
                  centercrop=True,
                  normalization="max",
                  cat_coil=True,
-                 cat_dists=False
+                 cat_dists=True
                  ):
         super().__init__(
                  data_class, 

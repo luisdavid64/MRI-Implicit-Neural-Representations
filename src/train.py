@@ -12,7 +12,7 @@ from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -75,6 +75,8 @@ else:
 # Setup loss functions
 if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
+if config['loss'] == 'MSLE':
+    loss_fn = MSLELoss()
 if config['loss'] == 'T':
     loss_fn = TLoss()
 if config['loss'] == 'LSL':

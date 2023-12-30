@@ -11,6 +11,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN, MultiHeadWrapper
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
+from models.mfn import GaborNet, FourierNet, KGaborNet
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
 from math import sqrt
 from clustering import partition_and_stats
@@ -53,11 +54,13 @@ def train(opts):
         model_back = WIRE2D(config['net'])
     elif config['model'] == 'FFN':
         model_back = FFN(config['net'])
+    elif config['model'] == 'Fourier':
+        model_back = FourierNet(config['net'])
     else:
         raise NotImplementedError
     model_back.to(device=device)
     model_back.train()
-    model_back = None
+    # model_back = None
 
     part_config = config["partition"]
     no_models = part_config["no_models"]
@@ -67,6 +70,7 @@ def train(opts):
     model = MultiHeadWrapper(
         backbone=model_back,
         no_heads=no_models,
+        subnet_type=FourierNet,
         params=config["subnets"],
         device=device,
         detach_outs=True
@@ -194,7 +198,7 @@ def train(opts):
                         # Make hyperparam is better probs
                         out_local = out[ind]
                         # Renormalize with 1!
-                        multiplier = (1 if idx == i else 0.00000001)/mx[i]
+                        multiplier = (1 if idx == i else 0.00001)/mx[i]
                         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
                             loss, _ = loss_fn(out_local, gt_local, coords.to(device))
                             train_loss += multiplier * loss
