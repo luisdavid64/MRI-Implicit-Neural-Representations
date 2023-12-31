@@ -1,0 +1,55 @@
+# Logger options
+log_iter: 10                 # How often to log the training loss 
+val_epoch: 5               # How often to validate testing and save output images during training
+image_save_epoch: 100        # How often do you want to save output images during training
+display_image_num: 8
+
+# Optimization options
+max_epoch: 2000                # Maximum number of training iterations
+batch_size: 20000            # Batch size (320x320)
+loss: L2
+optimizer: Adam               # Optimizer for trainings
+weight_decay: 0.0             # Weight decay
+beta1: 0.9                    # Adam parameter
+beta2: 0.999                  # Adam parameter
+lr: 0.00003                    # Initial learning rate
+
+
+############### Loss modifications ################
+loss_opts:
+  hdr_eps: 1e-3
+  hdr_ff_sigma: 2 
+  hdr_ff_factor: 0.5
+  min_sample: 3000
+
+
+################## 3D CT Image ###################
+# Model options (3D CT)
+model: Fourier                  # Options for MLP models [FFN | SIREN]
+# pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
+net: 
+  network_input_size: 512     # Input size for network
+  network_output_size: 2
+  network_depth: 8            # Depth of MLP layers
+  network_width: 512          # Width of MLP layers
+  last_tanh: True             # Set this to true to use a tanh layer at the end
+
+encoder:
+  embedding: gauss            #  Input embedding method
+  scale: 4
+  embedding_size: 256         # Embedding size for input Fourier feature encoding
+  coordinates_size: 4 
+
+# Data
+data: knee # or knee
+data_root: data 
+set: train
+slice: 10
+sample: 0
+transform: False      # Set to false for k-space
+full_norm: False       # If normalize fully to [0,1]
+normalization: coil
+
+partition:
+  no_steps: 40
+  no_models: 4
