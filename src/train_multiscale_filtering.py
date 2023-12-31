@@ -192,9 +192,9 @@ for epoch in range(max_epoch):
                 test_loss = 0
                 for idx,out in enumerate(test_output):
                     if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                        train_loss, _ = loss_fn(out, limit_kspace(gt,lims[idx].item()), gt)
+                        test_loss, _ = loss_fn(out, limit_kspace(gt,lims[idx].item()), gt)
                     else:
-                        train_loss = 0.5 * loss_fn(out, limit_kspace(gt,lims[idx]))
+                        test_loss = 0.5 * loss_fn(out, limit_kspace(gt,lims[idx]))
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output[-1]
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
