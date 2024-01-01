@@ -115,6 +115,8 @@ lims, part_radii = partition_and_stats(
     stat="max",
     show=False,
 )
+# Small first
+lims = torch.flip(lims,dims=(0,))
 
 bs = config["batch_size"]
 image_shape = dataset.img_shape
