@@ -396,7 +396,7 @@ class MRIDatasetWithDistances(MRIDataset):
                  centercrop=True,
                  normalization="max",
                  cat_coil=True,
-                 cat_dists=True
+                 cat_dists=False
                  ):
         super().__init__(
                  data_class, 
@@ -420,6 +420,7 @@ class MRIDatasetWithDistances(MRIDataset):
     def __getitem__(self, idx):
         if self.cat_coil:
             return self.coords[idx], self.image[idx], self.coords[idx,[0,-1]]
+            # return self.coords[idx,[1,2]], self.image[idx], self.coords[idx,[0,-1]]
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
