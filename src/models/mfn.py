@@ -52,15 +52,9 @@ class FourierLayer(nn.Module):
         self.linear = nn.Linear(in_features, out_features)
         self.linear.weight.data *= weight_scale  # gamma
         self.linear.bias.data.uniform_(-np.pi, np.pi)
-        self.linear2 = nn.Linear(512, out_features)
-        # self.linear2.weight.data *= weight_scale  # gamma
-        # self.linear2.bias.data.uniform_(-np.pi, np.pi)
         return
 
     def forward(self, x, dist_to_center):
-        if dist_to_center is not None:
-            filter = torch.exp(-(self.linear2(dist_to_center))**2)
-            return torch.sin(self.linear(x))*filter
         return torch.sin(self.linear(x))
 
 
@@ -219,6 +213,63 @@ class MultiscaleKFourier(MFNBase):
                 #  output_layers=None,
                  output_layers=[1,3,5,7],
                  reuse_filters=False):
+
+        hidden_layers = params['network_depth']
+        hidden_size = params['network_width']
+        in_size = params['network_input_size']
+        out_size = params['network_output_size'] 
+        super().__init__(hidden_size, out_size, hidden_layers,
+                         weight_scale, bias, output_act)
+
+        self.hidden_layers = hidden_layers
+        self.centered = centered
+        self.output_layers = output_layers
+        self.reuse_filters = reuse_filters
+        self.stop_after = None
+
+        # we need to multiply by this to be able to fit the signal
+        self.filters = nn.ModuleList(
+            [
+                FourierLayer(in_size, hidden_size, weight_scale / np.sqrt(hidden_layers + 1))
+                for _ in range(hidden_layers + 1)
+            ]
+        )
+        # linear layers to extract intermediate outputs
+        self.output_linear = nn.ModuleList([nn.Linear(hidden_size, out_size) for i in range(len(self.filters))])
+
+        # if outputs layers is None, output at every possible layer
+        if self.output_layers is None:
+            self.output_layers = np.arange(1, len(self.filters))
+
+        print(self)
+
+    def forward(self, coords):
+
+        outputs = []
+        out = self.filters[0](coords)
+        for i in range(1, len(self.filters)):
+            out = self.filters[i](coords) * self.linear[i - 1](out)
+
+            if i in self.output_layers:
+                outputs.append(self.output_linear[i](out))
+                if self.stop_after is not None and len(outputs) > self.stop_after:
+                    break
+
+        return outputs 
+
+
+class StopKFourier(MFNBase):
+    def __init__(self,
+                 params,
+                 weight_scale=1.0,
+                 bias=True,
+                 output_act=False,
+                 centered=True,
+                #  output_layers=None,
+                 output_layers=[1,3,5,7],
+                 reuse_filters=False, 
+                 boundaries=None
+                 ):
 
         hidden_layers = params['network_depth']
         hidden_size = params['network_width']
