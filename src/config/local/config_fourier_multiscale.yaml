@@ -7,17 +7,17 @@ display_image_num: 8
 # Optimization options
 max_epoch: 2000                # Maximum number of training iterations
 batch_size: 20000            # Batch size (320x320)
-loss: L2
+loss: LSL
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00003                    # Initial learning rate
+lr: 0.0003                    # Initial learning rate
 
 
 ############### Loss modifications ################
 loss_opts:
-  hdr_eps: 1e-3
+  hdr_eps: 3e-3
   hdr_ff_sigma: 2 
   hdr_ff_factor: 0.5
   min_sample: 3000
@@ -38,7 +38,7 @@ encoder:
   embedding: gauss            #  Input embedding method
   scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
-  coordinates_size: 4 
+  coordinates_size: 3 
 
 # Data
 data: knee # or knee
@@ -48,7 +48,7 @@ slice: 10
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
-normalization: coil
+normalization: max
 
 partition:
   no_steps: 40

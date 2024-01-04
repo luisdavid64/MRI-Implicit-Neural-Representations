@@ -54,7 +54,7 @@ class FourierLayer(nn.Module):
         self.linear.bias.data.uniform_(-np.pi, np.pi)
         return
 
-    def forward(self, x, dist_to_center):
+    def forward(self, x, dist_to_center=None):
         return torch.sin(self.linear(x))
 
 
@@ -257,8 +257,19 @@ class MultiscaleKFourier(MFNBase):
 
         return outputs 
 
+class BoundedLinear(nn.Module):
+    def __init__(self, in_size, out_size, bias, bounds):
+        super().__init__()
+        self.linear = nn.Linear(in_size, out_size, bias)
+        self.bounds = bounds
+    def forward(self, coords, dist):
+        coords_bounded = torch.clone(coords)
+        ind = torch.where((dist < self.bounds[0]) 
+                          | (dist > self.bounds[1]))
+        coords_bounded[ind] = 0
+        return self.linear(coords_bounded)
 
-class StopKFourier(MFNBase):
+class MultiscaleStopKFourier(MFNBase):
     def __init__(self,
                  params,
                  weight_scale=1.0,
@@ -283,6 +294,9 @@ class StopKFourier(MFNBase):
         self.output_layers = output_layers
         self.reuse_filters = reuse_filters
         self.stop_after = None
+        self.linear = nn.ModuleList(
+            [BoundedLinear(hidden_size, hidden_size, bias, boundaries[i]) for i in range(hidden_layers)]
+        )
 
         # we need to multiply by this to be able to fit the signal
         self.filters = nn.ModuleList(
@@ -300,12 +314,12 @@ class StopKFourier(MFNBase):
 
         print(self)
 
-    def forward(self, coords):
+    def forward(self, coords, dist_to_center=None):
 
         outputs = []
         out = self.filters[0](coords)
         for i in range(1, len(self.filters)):
-            out = self.filters[i](coords) * self.linear[i - 1](out)
+            out = self.filters[i](coords) * self.linear[i - 1](out, dist_to_center)
 
             if i in self.output_layers:
                 outputs.append(self.output_linear[i](out))

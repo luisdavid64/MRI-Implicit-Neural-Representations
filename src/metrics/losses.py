@@ -208,30 +208,16 @@ class LogSpaceLoss(torch.nn.Module):
     def forward(self, input, target):
         input = input.cpu()
         target = target.cpu()
-        input_abs =None
-        if input.shape[-1] > 2:
-            input_abs = input[...,2]
-            input_com = torch.clone(input[...,0:2])
-        if target.shape[-1] > 2:
-            target_abs = target[...,2]
-            target_com = torch.clone(target[...,0:2])
-
-        mag_loss = 0
-        if input_abs != None:
-            mag_loss = torch.nn.functional.mse_loss(input_abs, target_abs)
-            abs_value = fastmri.complex_abs(input_com) 
-            abs_loss = torch.nn.functional.mse_loss(input_abs, abs_value)
-            mag_loss = mag_loss + abs_loss
             
-        if input_com.dtype == torch.float:
-            input_com = torch.view_as_complex(input_com) #* filter_value
-        if target_com.dtype == torch.float:
-            target_com = torch.view_as_complex(target_com)
+        if input.dtype == torch.float:
+            input = torch.view_as_complex(input) #* filter_value
+        if target.dtype == torch.float:
+            target = torch.view_as_complex(target)
         
         # assert input.shape == target.shape
-        error = input_com - target_com
-        error_loss = ((error.abs()/(input_com.detach().abs()+self.eps))**2).mean()
-        return error_loss + mag_loss
+        error = input - target
+        error_loss = ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
+        return error_loss
 
 
 class HDRLoss_FF(torch.nn.Module):
