@@ -285,3 +285,21 @@ class AdaptiveHDRLoss(torch.nn.Module):
 
         if reduce:
             return loss.mean()
+
+class ConsistencyLoss(torch.nn.Module):
+    def __init__(self, bounds):
+        super().__init__()
+        self.bounds = bounds
+
+    def forward(self, input, dist):
+        loss = 0
+        for i in range(len(self.bounds)-1):
+            bound = self.bounds[i]
+            ind = torch.where((dist < bound[0]) 
+                            | (dist > bound[1]))
+            if ind[0].numel():
+                # We detach first tensor as we want effect only on subsequent layers
+                loss += torch.nn.functional.mse_loss(input[i][ind].detach(), input[i+1][ind])
+        return loss
+            
+            

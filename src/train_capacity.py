@@ -11,7 +11,7 @@ import torch.utils.tensorboard as tensorboardX
 from models.networks import Positional_Encoder
 from models.mfn import  MultiscaleStopKFourier
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, LogSpaceLoss, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss
 from clustering import partition_and_stats
 
 parser = argparse.ArgumentParser()
@@ -107,23 +107,16 @@ else:
 # Setup loss functions
 if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
-if config['loss'] == 'MSLE':
-    loss_fn = MSLELoss()
-if config['loss'] == 'T':
-    loss_fn = TLoss()
 if config['loss'] == 'LSL':
     loss_fn = LogSpaceLoss(config["loss_opts"])
-if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
     loss_fn = HDRLoss_FF(config['loss_opts'])
-elif config['loss'] == 'tanh':
-    loss_fn = TanhL2Loss()
 else:
     NotImplementedError
 
+loss_cons = ConsistencyLoss(pairs)
 if "pretrain" in config:
     checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
     model.load_state_dict(checkpoint["net"])
@@ -175,6 +168,7 @@ for epoch in range(max_epoch):
         optim.zero_grad()
         train_loss = 0
         # train_loss += torch.nn.functional.mse_loss(train_output[-1],gt)
+        train_loss += 0.1*loss_cons(train_output,dist_to_center)
         for idx,out in enumerate(train_output):
             if config["loss"] in ["HDR", "FFL", "tanh"]:
                 loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
