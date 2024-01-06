@@ -9,7 +9,7 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import Positional_Encoder
-from models.mfn import  MultiscaleStopKFourier
+from models.mfn import  MultiscaleBoundedFourier
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss
 from clustering import partition_and_stats
@@ -94,7 +94,7 @@ encoder = Positional_Encoder(config['encoder'], device=device)
 
 # Setup model
 # TODO: Modify output layers depending on length
-model = MultiscaleStopKFourier(config["net"], boundaries=pairs_model)
+model = MultiscaleBoundedFourier(config["net"], boundaries=pairs_model)
 model.to(device=device)
 model.train()
 

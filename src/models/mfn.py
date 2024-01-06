@@ -269,7 +269,7 @@ class BoundedLinear(nn.Module):
         coords_bounded[ind] = 0
         return self.linear(coords_bounded)
 
-class MultiscaleStopKFourier(MFNBase):
+class MultiscaleBoundedFourier(MFNBase):
     def __init__(self,
                  params,
                  weight_scale=1.0,
