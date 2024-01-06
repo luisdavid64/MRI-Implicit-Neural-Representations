@@ -1,3 +1,18 @@
+"""
+
+Multi-scale KSpace training based on distance from origin
+
+This Training script uses the MultiscaleBoundedFourier class,
+which is based on BACON and uses a similar notion. However,
+Instead of limiting the frequency of the sinusoids, we aim to
+limit the intensities that are represented at each output stage.
+
+We use k-means clustering to produce rings to focus at each 
+stage. Since k-space data tends to cluster high intensity points in the center
+and get weaker the further you go away from the center we get
+the desired limiting of the intensity.
+
+"""
 import os
 import argparse
 import shutil
