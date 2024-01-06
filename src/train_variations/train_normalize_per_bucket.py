@@ -9,10 +9,23 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
-from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from metrics.losses import HDRLoss_FF, MSLELoss, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from clustering import partition_and_stats
+from math import sqrt
+
+
+
+def scale_space(stats, img, dist, parts):
+    # len(Stats) == len(parts - 1)
+    for i in range(len(parts) - 1):
+        r_0 = parts[i] 
+        r_1 = parts[i+1]
+        ind = torch.where((dist >= r_0) & (dist < r_1))
+        img[ind] = img[ind] / stats[i]
+    return img
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -45,6 +58,7 @@ shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy c
 
 # Setup input encoder:
 encoder = Positional_Encoder(config['encoder'], device=device)
+part_config = config["partition"]
 
 # Setup model
 if config['model'] == 'SIREN':
@@ -55,12 +69,6 @@ elif config['model'] == 'WIRE2D':
     model = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
     model = FFN(config['net'])
-elif config['model'] == 'Fourier':
-    model = FourierNet(config['net'])
-elif config['model'] == 'Gabor':
-    model = GaborNet(config['net'])
-elif config['model'] == 'KGabor':
-    model = KGaborNet(config['net'])
 else:
     raise NotImplementedError
 model.to(device=device)
@@ -111,19 +119,36 @@ dataset, data_loader, val_loader = get_data_loader(
     slice=config["slice"],
     shuffle=True,
     full_norm=config["full_norm"],
-    normalization=config["normalization"],
-    use_dists="yes"
+    normalization=config["normalization"]
 )
+
+stats, part_radii = partition_and_stats(
+    dataset=dataset, 
+    no_steps=part_config["no_steps"],
+    no_parts=part_config["no_models"],
+    show=False
+)
+stats_rec = [1/x for x in stats]
+print("Kmeans Radial partitioning:")
+print(part_radii / sqrt(2))
+print("Radial stats:")
+print(stats)
 
 bs = config["batch_size"]
 image_shape = dataset.img_shape
 C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
+dist_to_center = torch.sqrt(dataset.coords[...,1]**2 + dataset.coords[...,2]**2)
+# Rescale data
+dataset.image = scale_space(stats, dataset.image, dist_to_center, part_radii).reshape(C*H*W,S)
+
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
-for it, (coords, gt, _) in enumerate(val_loader):
+for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
+# Scale Inversely
+train_image = scale_space(stats_rec, train_image, dist_to_center, part_radii).reshape(C*H*W,S)
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
@@ -133,10 +158,8 @@ train_image = fastmri.complex_abs(train_image)
 train_image = fastmri.rss(train_image, dim=0)
 image = torch.clone(train_image)
 save_im(image, image_directory, "train.png")
-
 # torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
 del train_image
-
 best_psnr = -999999
 best_psnr_ep = 0
 best_ssim = -1
@@ -147,21 +170,16 @@ print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
     running_loss = 0
-    for it, (coords, gt, dist_to_center) in enumerate(data_loader):
+    for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
-        train_output = None
-        if config["model"] == "KGabor":
-            train_output = model(coords, dist_to_center)  # [bs, 2]
-        else:
-            train_output = model(coords)  # [bs, 2]
         optim.zero_grad()
+        train_output = model(coords)  # [bs, 2]
         train_loss = 0
         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-            train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
+            train_loss, _ = loss_fn(train_output, gt, gt)
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
 
@@ -180,24 +198,21 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                kcoords = torch.clone(coords)
+            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = None
-                if config["model"] == "KGabor":
-                    test_output = model(coords, dist_to_center)  # [bs, 2]
-                else:
-                    test_output = model(coords)  # [bs, 2]
+                test_output = model(coords)  # [bs, 2]
                 test_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                    test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
+                    test_loss, _ = loss_fn(test_output, gt, gt)
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output
+        im_recon = scale_space(stats_rec, im_recon, dist_to_center, part_radii)
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
+        # Scale Inversely
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
             # Plot relative error
