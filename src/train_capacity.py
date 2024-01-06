@@ -167,14 +167,15 @@ for epoch in range(max_epoch):
         train_output = model(coords, dist_to_center)  # [bs, 2]
         optim.zero_grad()
         train_loss = 0
-        # train_loss += torch.nn.functional.mse_loss(train_output[-1],gt)
         train_loss += 0.1*loss_cons(train_output,dist_to_center)
         for idx,out in enumerate(train_output):
             if config["loss"] in ["HDR", "FFL", "tanh"]:
-                loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
+                loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
+                # loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
                 train_loss += loss / mx[idx]
             else:
                 train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
+                # train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]))
         train_loss.backward()
         optim.step()
 
@@ -201,8 +202,10 @@ for epoch in range(max_epoch):
                 for idx,out in enumerate(test_output):
                     if config["loss"] in ["HDR", "FFL", "tanh"]:
                         test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
+                        # test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
                     else:
                         test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
+                        # test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) 
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output[-1]
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
