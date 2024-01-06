@@ -258,6 +258,13 @@ class MultiscaleKFourier(MFNBase):
         return outputs 
 
 class BoundedLinear(nn.Module):
+    """
+    Bounded Linear Layer 
+
+    ### Parameters
+    1. bounds : a tuple (low, high) which bounds the representation
+    of the layer to a certain distance from the origin.
+    """
     def __init__(self, in_size, out_size, bias, bounds):
         super().__init__()
         self.linear = nn.Linear(in_size, out_size, bias)
@@ -270,6 +277,13 @@ class BoundedLinear(nn.Module):
         return self.linear(coords_bounded)
 
 class MultiscaleBoundedFourier(MFNBase):
+    """
+    Multi-scale Bounded Fourier Layer for K-Space data
+
+    This network is greatly inspired by BACON and MFNs, but
+    with the addition of Bounded Linear Layers and uses
+    information about the distance from the origin of each coordinate.
+    """
     def __init__(self,
                  params,
                  weight_scale=1.0,
