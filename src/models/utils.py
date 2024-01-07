@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,8 +39,9 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
     
     if data in ['brain', 'knee']:
         dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
+        dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
 
-    loader = DataLoader(dataset=dataset, 
+    loader = DataLoader(dataset=dataset_undersampled, 
                         batch_size=batch_size, 
                         shuffle=shuffle, 
                         drop_last=False, 

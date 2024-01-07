@@ -16,7 +16,7 @@ from typing import (
 )
 from math import ceil
 from torch.distributions import Normal
-
+from undersampling.undersampler import Undersampler
 
 def gaussian_kernel_1d(sigma: float, num_sigmas: float = 10.) -> torch.Tensor:
     
@@ -239,9 +239,15 @@ class MRIDataset(Dataset):
             title = "{} Data Statistics Per Coil".format("Image" if transform else "K-space")
             print("{}\n{}".format(title,table))
 
+        self.flatten_image_and_create_coords(data)
+
+    @classmethod
+    def flatten_image_and_create_coords(self, data : torch.Tensor):
+        # It will take data and reshape it for flatten image and it will create cordinates for it
+        C,H,W,S = data.shape
         self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
-
+        
     @classmethod
     def __normalize_kspace(cls, k_space, type="max", eps=1e-9):
         print(type)
@@ -378,6 +384,23 @@ class MRIDataset(Dataset):
 
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
+
+class MRIDatasetUndersamping(MRIDataset):
+    # we need to only override __flat
+    @classmethod
+    def flatten_image_and_create_coords(self, data : torch.Tensor):
+        # It will take data and reshape it for flatten image and it will create cordinates for it
+
+        data_undersampled, coords = Undersampler.undersample_even_rows_and_create_grid(data)
+        
+        C,H,W,S  = data_undersampled.shape
+        
+        self.shape = data_undersampled.shape
+        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+        self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
+
+    def __len__(self):
+        return len(self.coords)
 
 if __name__ == "__main__":
     x = MRIDataset(transform=False)
