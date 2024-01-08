@@ -35,17 +35,27 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max"):
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", undersampling="none"):
     
     if data in ['brain', 'knee']:
         dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
-        dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
+        dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersamping=undersampling)  #, img_dim)
 
-    loader = DataLoader(dataset=dataset_undersampled, 
+    loader = None
+    if undersampling == "none":
+        loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
-                        shuffle=shuffle, 
+                        shuffle=False, 
                         drop_last=False, 
                         num_workers=num_workers)
+    else:
+        print(f"Undersamping being used: {undersampling}")
+        loader = DataLoader(dataset=dataset_undersampled, 
+                        batch_size=batch_size, 
+                        shuffle=False, 
+                        drop_last=False, 
+                        num_workers=num_workers)
+    
 
     val_loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 

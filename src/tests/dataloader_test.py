@@ -1,4 +1,4 @@
-# Current system path
+ # Current system path
 import os
 from pathlib import Path
 
@@ -42,9 +42,9 @@ class TestAddFunction(unittest.TestCase):
         dataset = MRIDataset(data_class="knee", transform=True, custom_file_or_path=path)
 
         # Load this file
-        dataset_undersampled = MRIDatasetUndersamping(data_class="knee", transform=True, custom_file_or_path=path)
+        dataset_undersampled = MRIDatasetUndersamping(data_class="knee", transform=True, custom_file_or_path=path, undersamping="grid-5*5")
 
-        self.assertEqual(len(dataset)//2, len(dataset_undersampled))
+        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
          
 
 

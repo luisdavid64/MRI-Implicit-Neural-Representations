@@ -17,6 +17,7 @@ from typing import (
 from math import ceil
 from torch.distributions import Normal
 from undersampling.undersampler import Undersampler
+from typing import Tuple
 
 def gaussian_kernel_1d(sigma: float, num_sigmas: float = 10.) -> torch.Tensor:
     
@@ -241,7 +242,7 @@ class MRIDataset(Dataset):
 
         self.flatten_image_and_create_coords(data)
 
-    @classmethod
+    
     def flatten_image_and_create_coords(self, data : torch.Tensor):
         # It will take data and reshape it for flatten image and it will create cordinates for it
         C,H,W,S = data.shape
@@ -386,12 +387,51 @@ class MRIDataset(Dataset):
         return len(self.image)  #self.X.shape[0]
 
 class MRIDatasetUndersamping(MRIDataset):
+    def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersamping="grid-3*3"):
+        # Initialize undersampling attributes
+        self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersamping)
+
+        super().__init__(data_class, data_root, challenge, set, transform, sample, slice, full_norm, custom_file_or_path, per_coil_stats, centercrop, normalization)
+
+
+    
+    def parse_undersamping_argument(self, arg : str) -> Tuple[str, list]:
+        # This method will get argument and parse it and being put as list
+        # Argument should be in "function-params" type
+        # Example "grid-3*3", "grid-5*3" etc
+        parts = arg.split("-")
+        assert len(parts) == 2, f"Argument {arg} is incorrect"
+        argument_type, param = parts[0], parts[1]
+        
+
+        param_parsed = list()
+        if argument_type == "grid":
+            # Safety checks
+            assert "*" in param, "Please use * symbol for stating grid size"
+            
+            # Get dimensions
+            dimensions = param.split("*")
+
+            assert len(dimensions)==2, f"Grid dimensions provided ({param}) for undersamping is wrong please provide x*y format"
+
+            param_parsed.append(int(dimensions[0]))
+            param_parsed.append(int(dimensions[1]))
+
+            # str as argument type, parameters list
+            return argument_type, param_parsed
+            
+        else:
+            raise ValueError(f"Argument {argument_type} is not supported")
+
+             
+
     # we need to only override __flat
-    @classmethod
     def flatten_image_and_create_coords(self, data : torch.Tensor):
         # It will take data and reshape it for flatten image and it will create cordinates for it
-
-        data_undersampled, coords = Undersampler.undersample_even_rows_and_create_grid(data)
+        if self.undersamping_argument == "grid":
+            data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
+        else:
+            ValueError("Unsupported undersamping method")
         
         C,H,W,S  = data_undersampled.shape
         

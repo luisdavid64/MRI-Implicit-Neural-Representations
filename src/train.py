@@ -102,7 +102,8 @@ dataset, data_loader, val_loader = get_data_loader(
     slice=config["slice"],
     shuffle=True,
     full_norm=config["full_norm"],
-    normalization=config["normalization"]
+    normalization=config["normalization"],
+    undersampling= config["undersampling"]
 )
 
 bs = config["batch_size"]
