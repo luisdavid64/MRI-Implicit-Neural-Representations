@@ -82,7 +82,7 @@ if config['loss'] == 'T':
 if config['loss'] == 'LSL':
     loss_fn = CenterLoss(config["loss_opts"])
 if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
+    loss_fn = FocalFrequencyLoss()
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':

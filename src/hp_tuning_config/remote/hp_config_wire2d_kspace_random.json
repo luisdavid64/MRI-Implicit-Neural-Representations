@@ -1,0 +1,43 @@
+{
+  "method": "random",
+  "max_epoch": 200,
+  "num_search": 5,
+  "search_space": {
+    "loss": {
+      "values": ["tanh", "L2"],
+      "type": "item"
+    },
+    "batch_size":{
+      "values": [15000, 30000],
+      "type": "int"
+    },
+    "lr": {
+      "values": [0.00001, 0.00005],
+      "type": "log"
+    },
+    "net.network_depth": {
+      "values": [2,8],
+      "type": "int"
+    },
+    "net.network_width": {
+      "values": [128],
+      "type": "item"
+    },
+    "net.first_omega_0": {
+      "values": [15, 25],
+      "type": "int"
+    },
+    "net.hidden_omega_0": {
+      "values": [15, 25],
+      "type": "int"
+    },
+    "net.scale": {
+      "values": [10, 25],
+      "type": "int"
+    },
+    "normalization": {
+      "values": ["abs_max", "stand", "max_std", "tonemap"],
+      "type": "item"
+    }
+  }
+}

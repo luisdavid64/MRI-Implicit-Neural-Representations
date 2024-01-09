@@ -1,3 +1,4 @@
+import json
 import os
 import yaml
 import torch
@@ -19,6 +20,9 @@ def get_device(net_name):
     return torch.device(device)
 
 def get_config(config):
+    if config.endswith(".json"):
+        with open(config, 'r') as jf:
+            return json.load(jf)
     with open(config, 'r') as stream:
         return yaml.load(stream, Loader=yaml.Loader)
 
