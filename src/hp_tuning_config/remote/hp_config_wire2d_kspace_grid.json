@@ -1,0 +1,30 @@
+{
+  "method": "grid",
+  "max_epoch": 200,
+  "search_space": {
+    "batch_size":{
+      "values": [10000, 20000],
+      "type": "int"
+    },
+    "network_depth": {
+      "values": [3, 8, 12],
+      "type": "int"
+    },
+    "net.first_omega_0": {
+      "values": [20, 30, 40],
+      "type": "int"
+    },
+    "net.hidden_omega_0": {
+      "values": [20, 30, 40],
+      "type": "int"
+    },
+    "net.scale": {
+      "values": [10, 12, 20],
+      "type": "int"
+    },
+    "normalization": {
+      "values": ["coil", "gaussian_blur", "max_std", "max"],
+      "type": "item"
+    }
+  }
+}
