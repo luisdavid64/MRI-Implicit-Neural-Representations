@@ -1,7 +1,7 @@
 
 from typing import Tuple
 import torch
-
+import math
 
 class Undersampler():
     
@@ -15,9 +15,8 @@ class Undersampler():
 
         # Remove odd rows from the input tensor
         removed_odd_rows_tensor = images_tensor[:, ::grid_x, ::grid_y, :]
-        #removed_odd_rows_tensor = images_tensor[:, :, :, :]
 
-        # Create a coordinate grid based on the new dimensions after removing odd rows
+        # Create a coordinate grid based on the new dimensions
         new_H = removed_odd_rows_tensor.shape[1]
         new_W = removed_odd_rows_tensor.shape[2]
 
@@ -33,23 +32,42 @@ class Undersampler():
         
 
         return removed_odd_rows_tensor, grid
+    
+    def undersample_random_line(images_tensor: torch.Tensor, p: float) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert images_tensor.dim() == 4, "For processing, please provide a 4-dimensional tensor as [batch_size, image_x, image_y, channel_n]"
+        C,H,W,S = images_tensor.size()
+
+
+        mask_x = torch.rand(H) < math.sqrt(p)
+        mask_y = torch.rand(W) < math.sqrt(p)
+
+
+        # Remove odd rows from the input tensor
+        removed_odd_rows_tensor = images_tensor[:, mask_x,:, :]
+        removed_odd_rows_tensor = removed_odd_rows_tensor[:, :, mask_y, :]
+
+        # Apply same mask to linspace
+        Z, Y, X = torch.meshgrid(torch.linspace(-1, 1, C),
+                                torch.linspace(-1, 1, H)[mask_x],
+                                torch.linspace(-1, 1, W)[mask_y])
+
+        # Reshape and stack the grids
+        grid = torch.hstack((Z.reshape(-1, 1),
+                            Y.reshape(-1, 1),
+                            X.reshape(-1, 1)))
+
+        
+
+        return removed_odd_rows_tensor, grid
+
 
 if __name__ == '__main__':
     # Example usage
-    batch_size = 1
+    batch_size = 2
     x_dim = 8
     y_dim = 8
-    channels = 1
+    channels = 2
 
     images_tensor = torch.rand((batch_size, x_dim, y_dim, channels))
-
-    # Remove odd rows from the tensor and create a corresponding grid
-    removed_odd_rows_tensor, coordinate_grid = Undersampler.undersample_grid(images_tensor)
-
-    # Print the original tensor, removed tensor, and coordinate grid for verification
-    print("Original Tensor:")
-    print(images_tensor.shape)
-    print("\nTensor with Odd Rows Removed:")
-    print(removed_odd_rows_tensor.shape)
-    print("\nCoordinate Grid:")
-    print(coordinate_grid.shape)
+    undersampeld_image, coordinate_grid = Undersampler.undersample_random_line(images_tensor, 0.5)
+    #undersampeld_image, coordinate_grid = Undersampler.undersample_grid(images_tensor)

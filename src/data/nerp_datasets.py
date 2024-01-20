@@ -399,6 +399,7 @@ class MRIDatasetUndersamping(MRIDataset):
         # This method will get argument and parse it and being put as list
         # Argument should be in "function-params" type
         # Example "grid-3*3", "grid-5*3" etc
+        # Example "random_line-0.5"
         parts = arg.split("-")
         assert len(parts) == 2, f"Argument {arg} is incorrect"
         argument_type, param = parts[0], parts[1]
@@ -419,7 +420,16 @@ class MRIDatasetUndersamping(MRIDataset):
 
             # str as argument type, parameters list
             return argument_type, param_parsed
-            
+        elif argument_type == "random_line":
+            # Here we are assuming param is a float value in between 0 to 1
+            random_value_p = float(param)
+            assert (random_value_p <= 1.0) and (random_value_p >= 0), "P value is not in range [0,1]"
+
+            # Add param value to param_parsed list
+            param_parsed.append(random_value_p)   
+
+            # Return argument types as str, then p value in the list
+            return argument_type, param_parsed
         else:
             raise ValueError(f"Argument {argument_type} is not supported")
 
@@ -430,6 +440,8 @@ class MRIDatasetUndersamping(MRIDataset):
         # It will take data and reshape it for flatten image and it will create cordinates for it
         if self.undersamping_argument == "grid":
             data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
+        elif self.undersamping_argument == "random_line":
+            data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
         else:
             ValueError("Unsupported undersamping method")
         

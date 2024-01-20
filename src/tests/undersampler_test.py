@@ -15,7 +15,7 @@ import torch
 
 class TestRemoveOddRowsAndCreateGrid(unittest.TestCase):
 
-    def test_remove_odd_rows_and_create_grid(self):
+    def test_grid_based_sampling(self):
         batch_size = 2
         x_dim = 320
         y_dim = 320
@@ -29,7 +29,17 @@ class TestRemoveOddRowsAndCreateGrid(unittest.TestCase):
         self.assertEqual(removed_odd_rows_tensor.shape, (batch_size, x_dim // 2, y_dim // 2, channels))
         self.assertEqual(coordinate_grid.shape, (batch_size * (x_dim // 2) * (y_dim//2), 3))
 
-        
+    def test_random_line(self):
+        batch_size = 2
+        x_dim = 8
+        y_dim = 8
+        channels = 2
+
+        images_tensor = torch.rand((batch_size, x_dim, y_dim, channels))
+        undersampeld_image, coordinate_grid = Undersampler.undersample_random_line(images_tensor, 0.5)
+
+        self.assertEqual(undersampeld_image.shape[1] * undersampeld_image.shape[2] * channels, coordinate_grid.shape[0] )
+
 
 if __name__ == '__main__':
     unittest.main()
