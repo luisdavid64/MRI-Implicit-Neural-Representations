@@ -39,38 +39,63 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", use_dists="no", undersampling="none"):
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", use_dists="no", undersampling=None):
 
-    if (use_dists == "yes" or use_dists == True) and undersampling=="none":
-        dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
-    if data in ['brain', 'knee']:
-        dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
-        dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersamping=undersampling)  #, img_dim)
+     # Safety check
+    assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
 
-    loader = None
-    if undersampling == "none":
+    # Firstly if we are going to use undersampling we need to make sure that our validation loader should have normal version
+    # let's firstly check if we are going to have undersampling or not
+    
+    if undersampling == None:
+        # we do not have undersampling therefore normal operation
+        if use_dists == "yes" or use_dists == True:
+            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None) 
+        else:
+            # Get data set without Undersampling
+            dataset = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+
+        # Create validation and traning laoders
         loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
                         shuffle=False, 
                         drop_last=False, 
                         num_workers=num_workers)
-    else:
-        print(f"Undersamping being used: {undersampling}")
-        loader = DataLoader(dataset=dataset_undersampled, 
-                        batch_size=batch_size, 
-                        shuffle=False, 
-                        drop_last=False, 
-                        num_workers=num_workers,
-                        pin_memory=True
-                        )
 
-    val_loader = DataLoader(dataset=dataset, 
+        val_loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
                         shuffle=False, 
                         drop_last=False, 
                         num_workers=num_workers,
                         pin_memory=True
                 )
+    
+    else:
+        # if we have undersampling, we need to have sepeare data set
+        if use_dists == "yes" or use_dists == True:
+            # then get normal data set and undersampled dataset
+            dataset_undersampled = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
+            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+        else:
+            # Use normal dataset
+            dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
+            dataset = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+        
+        # Create loader, note that we are using undersampled dataset in the traning loader
+        loader = DataLoader(dataset=dataset_undersampled, 
+                        batch_size=batch_size, 
+                        shuffle=False, 
+                        drop_last=False, 
+                        num_workers=num_workers)
+
+        val_loader = DataLoader(dataset=dataset, 
+                        batch_size=batch_size, 
+                        shuffle=False, 
+                        drop_last=False, 
+                        num_workers=num_workers,
+                        pin_memory=True
+                )
+    #return normal not undersampled data set, then undersampled loader if, and normal validation loader
     return dataset, loader, val_loader
 
 

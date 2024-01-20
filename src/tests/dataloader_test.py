@@ -10,7 +10,7 @@ sys.path.append(str(working_path))
 
 import unittest
 import os
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
 
 class TestAddFunction(unittest.TestCase):
 
@@ -45,6 +45,44 @@ class TestAddFunction(unittest.TestCase):
         dataset_undersampled = MRIDatasetUndersamping(data_class="knee", transform=True, custom_file_or_path=path, undersamping="grid-5*5")
 
         self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+    
+    def test_MRIDatasetUndersamping_nonetest(self):
+        path = "data/knee_multicoil_train/file1000801.h5"
+        
+        # Before the start of the test, make sure that file exsist
+        assert os.path.exists(path), f"File is not exsist {path}"
+
+        # Load this file
+        dataset = MRIDatasetUndersamping(data_class="knee", transform=True, custom_file_or_path=path)
+
+        # Load this file
+        dataset_undersampled = MRIDatasetUndersamping(data_class="knee", transform=True, custom_file_or_path=path, undersamping="grid-5*5")
+
+        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+    
+    def test_MRIDatasetWithDistances(self):
+        path = "data/knee_multicoil_train/file1000801.h5"
+        
+        # Before the start of the test, make sure that file exsist
+        assert os.path.exists(path), f"File is not exsist {path}"
+
+        # Load this file
+        dataset = MRIDatasetWithDistances(data_class="knee", transform=False, custom_file_or_path=path)
+
+        dataset_undersampled = MRIDatasetWithDistances(data_class="knee", transform=False, custom_file_or_path=path, undersamping="grid-5*5")
+
+        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+
+    def test_MRIDatasetDistanceAndAngle(self):
+        path = "data/knee_multicoil_train/file1000801.h5"
+        
+        # Before the start of the test, make sure that file exsist
+        assert os.path.exists(path), f"File is not exsist {path}"
+
+        # Load this file
+        dataset = MRIDatasetDistanceAndAngle(data_class="knee", transform=False, custom_file_or_path=path)
+
+        dataset_undersampled = MRIDatasetDistanceAndAngle(data_class="knee", transform=False, custom_file_or_path=path, undersamping="grid-5*5")
          
 
 
