@@ -53,3 +53,10 @@ normalization: max
 partition:
   no_steps: 40
   no_models: 4
+
+# Undersamping paramters
+# Supported formats:
+#   grid-x*y          example: grid-3*3
+#   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
+#   none              So no undersamping
+undersampling: uniform_random-0.5

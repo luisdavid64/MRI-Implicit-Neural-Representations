@@ -32,13 +32,14 @@ encoder:
 
 
 # Data
-data: brain # or knee
+data: knee # or knee
 data_root: data
 set: train
-slice: 0
+slice: 18
 sample: 0
 transform: True      # Set to false for k-space
 full_norm: True       # If normalize fully to [0,1]
+normalization: none
 
 # Undersamping paramters
 # Supported formats:
