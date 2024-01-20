@@ -1,10 +1,11 @@
+import json
 import os
 import yaml
 import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +20,9 @@ def get_device(net_name):
     return torch.device(device)
 
 def get_config(config):
+    if config.endswith(".json"):
+        with open(config, 'r') as jf:
+            return json.load(jf)
     with open(config, 'r') as stream:
         return yaml.load(stream, Loader=yaml.Loader)
 
@@ -35,8 +39,10 @@ def prepare_sub_folder(output_directory):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", undersampling="none"):
-    
+                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", use_dists="no", undersampling="none"):
+
+    if (use_dists == "yes" or use_dists == True) and undersampling=="none":
+        dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
     if data in ['brain', 'knee']:
         dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization)  #, img_dim)
         dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersamping=undersampling)  #, img_dim)
@@ -54,14 +60,17 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                         batch_size=batch_size, 
                         shuffle=False, 
                         drop_last=False, 
-                        num_workers=num_workers)
-    
+                        num_workers=num_workers,
+                        pin_memory=True
+                        )
 
     val_loader = DataLoader(dataset=dataset, 
                         batch_size=batch_size, 
                         shuffle=False, 
                         drop_last=False, 
-                        num_workers=num_workers)
+                        num_workers=num_workers,
+                        pin_memory=True
+                )
     return dataset, loader, val_loader
 
 

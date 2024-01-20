@@ -6,9 +6,6 @@ kornia==0.6.5
 opencv_python==4.4.0.46
 matplotlib==3.3.4
 tqdm==4.64.1
-PyMCubes==0.1.2
-open3d==0.13.0
-pystackreg==0.2.2
 numpy==1.22.0
 Pillow==9.5.0
 pyYAML==6.0.1

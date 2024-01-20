@@ -8,11 +8,10 @@ import fastmri
 from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
-from models.networks import WIRE, Positional_Encoder, FFN, SIREN
-from models.mfn import GaborNet, FourierNet, KGaborNet
+from models.networks import WIRE, Positional_Encoder, FFN, SIREN, ScalerWrapper
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from metrics.losses import HDRLoss_FF, MSLELoss, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -48,23 +47,23 @@ encoder = Positional_Encoder(config['encoder'], device=device)
 
 # Setup model
 if config['model'] == 'SIREN':
-    model = SIREN(config['net'])
+    model_back = SIREN(config['net'])
 elif config['model'] == 'WIRE':
-    model = WIRE(config['net'])
+    model_back = WIRE(config['net'])
 elif config['model'] == 'WIRE2D':
-    model = WIRE2D(config['net'])
+    model_back = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
-    model = FFN(config['net'])
-elif config['model'] == 'Fourier':
-    model = FourierNet(config['net'])
-elif config['model'] == 'Gabor':
-    model = GaborNet(config['net'])
-elif config['model'] == 'KGabor':
-    model = KGaborNet(config['net'])
+    model_back = FFN(config['net'])
 else:
     raise NotImplementedError
-model.to(device=device)
-model.train()
+model_back.to(device=device)
+model_back.train()
+
+model = ScalerWrapper(
+    backbone=model_back,
+    # params=config["subnets"],
+    device=device,
+)
 
 # Setup optimizer
 if config['optimizer'] == 'Adam':
@@ -82,7 +81,7 @@ if config['loss'] == 'T':
 if config['loss'] == 'LSL':
     loss_fn = CenterLoss(config["loss_opts"])
 if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss()
+    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
@@ -112,7 +111,6 @@ dataset, data_loader, val_loader = get_data_loader(
     shuffle=True,
     full_norm=config["full_norm"],
     normalization=config["normalization"],
-    undersampling= config["undersampling"],
     use_dists="yes"
 )
 
@@ -150,19 +148,15 @@ for epoch in range(max_epoch):
     running_loss = 0
     for it, (coords, gt, dist_to_center) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
+        dist_to_center = dist_to_center.to(device=device)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
-        train_output = None
-        if config["model"] == "KGabor":
-            train_output = model(coords, dist_to_center)  # [bs, 2]
-        else:
-            train_output = model(coords)  # [bs, 2]
         optim.zero_grad()
+        train_output = model(coords, dist_to_center)  # [bs, 2]
         train_loss = 0
         if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-            train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
+            train_loss, _ = loss_fn(train_output, gt, coords.to(device))
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
 
@@ -182,18 +176,14 @@ for epoch in range(max_epoch):
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
             for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
+                dist_to_center = dist_to_center.to(device=device)
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = None
-                if config["model"] == "KGabor":
-                    test_output = model(coords, dist_to_center)  # [bs, 2]
-                else:
-                    test_output = model(coords)  # [bs, 2]
+                test_output = model(coords,dist_to_center)  # [bs, 2]
                 test_loss = 0
                 if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                    test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
+                    test_loss, _ = loss_fn(test_output, gt, coords.to(device))
                 else:
                     test_loss = 0.5 * loss_fn(test_output, gt)
                 test_running_loss += test_loss.item()

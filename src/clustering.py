@@ -15,7 +15,10 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     if dataset:
         C,H,W,S = dataset.shape
         img = dataset.image.reshape(C,H,W,S)
-        kcoords = dataset.coords.reshape(C,H,W,3)
+        if dataset.coords.shape[-1] > 3:
+            kcoords = dataset.coords[:, 0:3].reshape(C,H,W,3)
+        else:
+            kcoords = dataset.coords.reshape(C,H,W,3)
     C,H,W,S = img.shape 
 
     dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
@@ -33,7 +36,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
         ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
         inds.append(ind)
     radial_data = [torch.log(fastmri.complex_abs(img[ind])) for ind in inds]
-    means = [torch.mean(part).item() for part in radial_data]
+    means = [torch.max(part).item() for part in radial_data]
     means = np.array(means).reshape(-1,1)
     kmeans = KMeans(
         init="random",
@@ -57,7 +60,7 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     radii = np.array(radii)
 
     # Make sure last one covers entire range
-    radii[no_parts] = 2
+    radii[no_parts] = 5
     # We can ignore the Coil as not relevant
     if show:
         clustered = np.zeros((C,H,W))
@@ -66,6 +69,51 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
         plt.imshow(clustered[0], cmap='gray')
         plt.show()
     return labels, radii
+
+def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
+    if dataset == None and (img == None or kcoords == None):
+        raise ValueError('Dataset or image must be provided')
+    if dataset:
+        C,H,W,S = dataset.shape
+        img = dataset.image.reshape(C,H,W,S)
+        _,K = dataset.coords.shape
+        kcoords = dataset.coords.reshape(C,H,W,K)
+    _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
+    dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+    stats = []
+    for i in range(len(radii) - 1):
+        r_0 = radii[i]
+        r_1 = radii[i+1]
+        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+        if stat == "min":
+            st = torch.abs(img[ind]).min()
+            stats.append(st)
+        else:
+            st = torch.abs(img[ind]).max()
+            stats.append(st)
+    return torch.stack(stats), radii
+        
+def partition_pseudo_label(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
+    if dataset == None and (img == None or kcoords == None):
+        raise ValueError('Dataset or image must be provided')
+    if dataset:
+        C,H,W,S = dataset.shape
+        img = dataset.image.reshape(C,H,W,S)
+        kcoords = dataset.coords.reshape(C,H,W,3)
+    C,H,W,S = img.shape
+    _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
+    dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
+    pseudo_label = torch.zeros((C, H, W, no_parts))
+    for i in range(len(radii) - 1):
+        r_0 = radii[i]
+        r_1 = radii[i+1]
+        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1)) 
+        ind = ind + tuple([torch.zeros(ind[0].shape).int() + i])
+        pseudo_label[ind] = 1
+    pseudo_label = pseudo_label.reshape((C*H*W, no_parts))
+    return pseudo_label, radii
+    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -92,4 +140,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    partition_kspace(img=img,kcoords=coords, show=True)
+    lab, _ = partition_pseudo_label(img=img,kcoords=coords, show=True)

@@ -9,10 +9,12 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
-from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss
+from math import sqrt
+from clustering import partition_kspace
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -45,44 +47,47 @@ shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy c
 
 # Setup input encoder:
 encoder = Positional_Encoder(config['encoder'], device=device)
+part_config = config["partition"]
+no_models = part_config["no_models"]
+no_steps = part_config["no_steps"]
 
 # Setup model
 if config['model'] == 'SIREN':
-    model = SIREN(config['net'])
+    # 0.5% radial distance
+    model = []
+    for i in range(no_models):
+        model.append(SIREN(config['net']))
 elif config['model'] == 'WIRE':
     model = WIRE(config['net'])
 elif config['model'] == 'WIRE2D':
     model = WIRE2D(config['net'])
 elif config['model'] == 'FFN':
     model = FFN(config['net'])
-elif config['model'] == 'Fourier':
-    model = FourierNet(config['net'])
-elif config['model'] == 'Gabor':
-    model = GaborNet(config['net'])
-elif config['model'] == 'KGabor':
-    model = KGaborNet(config['net'])
 else:
     raise NotImplementedError
-model.to(device=device)
-model.train()
+
+for m in model:
+    m.to(device=device)
+    m.train()
 
 # Setup optimizer
 if config['optimizer'] == 'Adam':
-    optim = torch.optim.Adam(model.parameters(), lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
+    params = []
+    for i in range(no_models):
+        params = params + list(model[i].parameters())
+    optim = torch.optim.Adam(params, lr=config['lr'], betas=(config['beta1'], config['beta2']), weight_decay=config['weight_decay'])
 else:
     NotImplementedError
 
 # Setup loss functions
 if config['loss'] == 'L2':
     loss_fn = torch.nn.MSELoss()
-if config['loss'] == 'MSLE':
-    loss_fn = MSLELoss()
 if config['loss'] == 'T':
     loss_fn = TLoss()
 if config['loss'] == 'LSL':
     loss_fn = CenterLoss(config["loss_opts"])
 if config['loss'] == 'FFL':
-    loss_fn = FocalFrequencyLoss()
+    loss_fn = FocalFrequencyLoss(config=config["loss_opts"])
 elif config['loss'] == 'L1':
     loss_fn = torch.nn.L1Loss()
 elif config['loss'] == 'HDR':
@@ -111,10 +116,17 @@ dataset, data_loader, val_loader = get_data_loader(
     slice=config["slice"],
     shuffle=True,
     full_norm=config["full_norm"],
-    normalization=config["normalization"],
-    undersampling= config["undersampling"],
-    use_dists="yes"
+    normalization=config["normalization"]
 )
+
+_, part_radii = partition_kspace(
+    dataset=dataset, 
+    no_steps=part_config["no_steps"],
+    no_parts=part_config["no_models"],
+    show=False
+)
+print("Kmeans Radial partitioning:")
+print(part_radii / sqrt(2))
 
 bs = config["batch_size"]
 image_shape = dataset.img_shape
@@ -123,7 +135,7 @@ print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
 # Reconstruct image from val
-for it, (coords, gt, _) in enumerate(val_loader):
+for it, (coords, gt) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
@@ -146,28 +158,33 @@ best_ssim_ep = 0
 scheduler = LambdaLR(optim, lambda x: 0.2**min(x/max_epoch, 1))
 print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
-    model.train()
+    for m in model:
+        m.train()
     running_loss = 0
-    for it, (coords, gt, dist_to_center) in enumerate(data_loader):
+    for it, (coords, gt) in enumerate(data_loader):
         # Copy coordinates for HDR loss
-        kcoords = torch.clone(coords)
+        dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
         coords = coords.to(device=device)  # [bs, 3]
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
-        train_output = None
-        if config["model"] == "KGabor":
-            train_output = model(coords, dist_to_center)  # [bs, 2]
-        else:
-            train_output = model(coords)  # [bs, 2]
-        optim.zero_grad()
-        train_loss = 0
-        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-            train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
-        else:
-            train_loss = 0.5 * loss_fn(train_output, gt)
-
-        train_loss.backward()
-        optim.step()
+        for i in range(no_models):
+            optim.zero_grad()
+            r_0 = max(0, part_radii[i] - np.abs(np.random.normal(0, 0.05)))
+            r_1 = part_radii[i+1] + np.abs(np.random.normal(0, 0.05))
+            # r_0 = part_radii[i]
+            # r_1 = part_radii[i+1]
+            ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+            if ind[0].numel():
+                coords_local = coords[ind]
+                gt_local = gt[ind]
+                train_output = model[i](coords_local)
+                train_loss = 0
+                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                    train_loss, _ = loss_fn(train_output, gt_local, coords.to(device))
+                else:
+                    train_loss = 0.5 * loss_fn(train_output, gt_local)
+                train_loss.backward()
+            optim.step()
 
         running_loss += train_loss.item()
 
@@ -177,27 +194,33 @@ for epoch in range(max_epoch):
             print("[Epoch: {}/{}, Iteration: {}] Train loss: {:.4g}".format(epoch+1, max_epoch, it, train_loss))
             running_loss = 0
     if (epoch + 1) % config['val_epoch'] == 0:
-        model.eval()
+        for m in model:
+            m.eval()
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
-                kcoords = torch.clone(coords)
+            for it, (coords, gt) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                dist_to_center = torch.sqrt(coords[...,1]**2 + coords[...,2]**2)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = None
-                if config["model"] == "KGabor":
-                    test_output = model(coords, dist_to_center)  # [bs, 2]
-                else:
-                    test_output = model(coords)  # [bs, 2]
-                test_loss = 0
-                if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                    test_loss, _ = loss_fn(test_output, gt, kcoords.to(device))
-                else:
-                    test_loss = 0.5 * loss_fn(test_output, gt)
-                test_running_loss += test_loss.item()
-                im_recon[it*bs:(it+1)*bs, :] = test_output
+                batch_rec = torch.zeros(gt.shape).to(device)
+                for i in range(no_models):
+                    r_0 = part_radii[i]
+                    r_1 = part_radii[i+1]
+                    ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1))
+                    if ind[0].numel():
+                        coords_local = coords[ind]
+                        gt_local = gt[ind]
+                        test_output = model[i](coords_local)
+                        test_loss = 0
+                        if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
+                            test_loss, _ = loss_fn(test_output, gt_local, coords.to(device))
+                        else:
+                            test_loss = 0.5 * loss_fn(test_output, gt_local)
+                        test_running_loss += test_loss.item()
+                        batch_rec[ind] = test_output
+                im_recon[it*bs:(it+1)*bs, :] = batch_rec
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()
         if not in_image_space:
             save_im(im_recon.squeeze(), image_directory, "recon_kspace_{}dB.png".format(epoch + 1), is_kspace=True)
@@ -226,9 +249,10 @@ for epoch in range(max_epoch):
 
     if (epoch + 1) % config['image_save_epoch'] == 0:
         # Save final model
-        model_name = os.path.join(checkpoint_directory, 'model_%06d.pt' % (epoch + 1))
-        torch.save({'net': model.state_dict(), \
-                    'enc': encoder.B, \
-                    'opt': optim.state_dict(), \
-                    }, model_name)
+        for i in range(no_models):
+            model_name = os.path.join(checkpoint_directory, 'submodel_%d_%06d.pt' % (i, epoch + 1))
+            torch.save({'net': model[i].state_dict(), \
+                        'enc': encoder.B, \
+                        'opt': optim[i].state_dict(), \
+                        }, model_name)
     scheduler.step()

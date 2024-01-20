@@ -5,14 +5,14 @@ image_save_epoch: 100        # How often do you want to save output images durin
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000                # Maximum number of training iterations
-batch_size: 20000               # Batch size (320x320)
+max_epoch: 700                # Maximum number of training iterations
+batch_size: 20000              # Batch size (320x320)
 loss: tanh
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0             # Weight decay
+weight_decay: 0.1             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.00003                    # Initial learning rate
+lr: 0.00001                   # Initial learning rate
  # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
 ############### Loss modifications ################
 loss_opts:
@@ -25,17 +25,17 @@ loss_opts:
 
 model: WIRE2D                   # Options for MLP models [FFN | SIREN]
 net: 
-  network_input_size: 512     # Input size for network
+  network_input_size: 3 #512     # Input size for network
   network_output_size: 2 
-  network_depth: 8            # Depth of MLP layers
-  network_width: 512          # Width of MLP layers
-  first_omega_0: 30
-  hidden_omega_0: 30
-  scale: 15
-  last_tanh: True             # Set this to true to use a tanh layer at the end
+  network_depth: 3            # Depth of MLP layers
+  network_width: 256          # Width of MLP layers
+  first_omega_0: 18
+  hidden_omega_0: 21
+  scale: 12
+  last_tanh: False # True             # Set this to true to use a tanh layer at the end
 
 encoder:
-  embedding: gauss            #  Input embedding method
+  embedding: none #gauss            #  Input embedding method
   scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3
@@ -49,3 +49,4 @@ slice: 0
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: True
+normalization: max_std # gaussian_blur

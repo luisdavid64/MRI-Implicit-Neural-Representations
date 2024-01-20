@@ -3,6 +3,27 @@ device = ("cuda" if torch.cuda.is_available() else "cpu")
 import fastmri
 from torch.nn import MarginRankingLoss
 
+class RadialL2Loss(torch.nn.Module):
+    def __init__(self, eps=1e-9):
+        super(RadialL2Loss, self).__init__()
+        self.eps = eps
+    def forward(self, x, y):
+        loss = torch.nn.functional.mse_loss(x,y)
+        # Magnitude loss
+        loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
+        return loss
+
+class MSLELoss(torch.nn.Module):
+    def __init__(self, eps=1e-9):
+        super(MSLELoss, self).__init__()
+        self.eps = eps
+    def forward(self, x, y):
+        loss = torch.nn.functional.mse_loss(torch.log(x+1+self.eps),torch.log(y+1 +self.eps))
+        # Magnitude loss
+        # loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
+        return loss
+
+
 class TLoss(torch.nn.Module):
 
     def __init__(self):
@@ -187,30 +208,16 @@ class LogSpaceLoss(torch.nn.Module):
     def forward(self, input, target):
         input = input.cpu()
         target = target.cpu()
-        input_abs =None
-        if input.shape[-1] > 2:
-            input_abs = input[...,2]
-            input_com = torch.clone(input[...,0:2])
-        if target.shape[-1] > 2:
-            target_abs = target[...,2]
-            target_com = torch.clone(target[...,0:2])
-
-        mag_loss = 0
-        if input_abs != None:
-            mag_loss = torch.nn.functional.mse_loss(input_abs, target_abs)
-            abs_value = fastmri.complex_abs(input_com) 
-            abs_loss = torch.nn.functional.mse_loss(input_abs, abs_value)
-            mag_loss = mag_loss + abs_loss
             
-        if input_com.dtype == torch.float:
-            input_com = torch.view_as_complex(input_com) #* filter_value
-        if target_com.dtype == torch.float:
-            target_com = torch.view_as_complex(target_com)
+        if input.dtype == torch.float:
+            input = torch.view_as_complex(input) #* filter_value
+        if target.dtype == torch.float:
+            target = torch.view_as_complex(target)
         
         # assert input.shape == target.shape
-        error = input_com - target_com
-        error_loss = ((error.abs()/(input_com.detach().abs()+self.eps))**2).mean()
-        return error_loss + mag_loss
+        error = input - target
+        error_loss = ((error.abs()/(input.detach().abs()+self.eps))**2).mean()
+        return error_loss
 
 
 class HDRLoss_FF(torch.nn.Module):
@@ -278,3 +285,21 @@ class AdaptiveHDRLoss(torch.nn.Module):
 
         if reduce:
             return loss.mean()
+
+class ConsistencyLoss(torch.nn.Module):
+    def __init__(self, bounds):
+        super().__init__()
+        self.bounds = bounds
+
+    def forward(self, input, dist):
+        loss = 0
+        for i in range(len(self.bounds)-1):
+            bound = self.bounds[i]
+            ind = torch.where((dist < bound[0]) 
+                            | (dist > bound[1]))
+            if ind[0].numel():
+                # We detach first tensor as we want effect only on subsequent layers
+                loss += torch.nn.functional.mse_loss(input[i][ind].detach(), input[i+1][ind])
+        return loss
+            
+            
