@@ -13,6 +13,7 @@ from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from models.regularization import Regularization_L1, Regularization_L2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -92,6 +93,16 @@ elif config['loss'] == 'tanh':
 else:
     NotImplementedError
 
+# Setup Regularization
+regularization_methods = {
+    "L1" : Regularization_L1(reg_strenght=0.001),
+    "L2" : Regularization_L2(reg_strenght=0.001)
+}
+regularization = regularization_methods.get(config["regularization"], None)
+if regularization:
+    print(f"Regularization is being used {type(regularization)}")
+# End of Regularization setup
+
 if "pretrain" in config:
     checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
     model.load_state_dict(checkpoint["net"])
@@ -165,6 +176,11 @@ for epoch in range(max_epoch):
             train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
         else:
             train_loss = 0.5 * loss_fn(train_output, gt)
+
+        # Regularization check
+        if regularization:
+            #add refularization term to loss
+            train_loss += regularization(model.parameters())
 
         train_loss.backward()
         optim.step()
