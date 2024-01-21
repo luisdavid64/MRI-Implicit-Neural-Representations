@@ -24,7 +24,7 @@ from datetime import datetime
 from tqdm import tqdm
 import torch.utils.tensorboard as tensorboardX
 from models.networks import Positional_Encoder
-from models.mfn import  MultiscaleBoundedFourier
+from models.mfn import  MultiscaleBoundedFourier, MultiscaleKFourier
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss
 from clustering import partition_and_stats
@@ -108,8 +108,13 @@ print(pairs)
 encoder = Positional_Encoder(config['encoder'], device=device)
 
 # Setup model
-# TODO: Modify output layers depending on length
-model = MultiscaleBoundedFourier(config["net"], boundaries=pairs_model)
+model = None
+if config["bounded"]:
+    print("Bounded")
+    model = MultiscaleBoundedFourier(config["net"], boundaries=pairs_model)
+else:
+    print("Unbounded")
+    model = MultiscaleKFourier(config["net"])
 model.to(device=device)
 model.train()
 
@@ -179,18 +184,18 @@ for epoch in range(max_epoch):
         dist_to_center = dist_to_center.to(device)
         coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
-        train_output = model(coords, dist_to_center)  # [bs, 2]
+        train_output = model(coords=coords, dist_to_center=dist_to_center)  # [bs, 2]
         optim.zero_grad()
         train_loss = 0
         train_loss += 0.1*loss_cons(train_output,dist_to_center)
         for idx,out in enumerate(train_output):
             if config["loss"] in ["HDR", "FFL", "tanh"]:
-                loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
-                # loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
+                # loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
+                loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
                 train_loss += loss / mx[idx]
             else:
-                train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
-                # train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]))
+                # train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
+                train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]))
         train_loss.backward()
         optim.step()
 
@@ -211,16 +216,16 @@ for epoch in range(max_epoch):
                 dist_to_center = dist_to_center.to(device)
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]
                 gt = gt.to(device=device)  # [bs, 2], [0, 1]
-                test_output = model(coords, dist_to_center)  # [bs, 2]
+                test_output = model(coords=coords,dist_to_center=dist_to_center)  # [bs, 2]
                 test_loss = 0
                 # test_loss += torch.nn.functional.mse_loss(test_output[-1],gt)
                 for idx,out in enumerate(test_output):
                     if config["loss"] in ["HDR", "FFL", "tanh"]:
-                        test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
-                        # test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
+                        # test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
+                        test_loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
                     else:
-                        test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
-                        # test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) 
+                        # test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
+                        test_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) 
                 test_running_loss += test_loss.item()
                 im_recon[it*bs:(it+1)*bs, :] = test_output[-1]
         im_recon = im_recon.reshape(C,H,W,S).detach().cpu()

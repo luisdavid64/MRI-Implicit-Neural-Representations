@@ -243,7 +243,7 @@ class MultiscaleKFourier(MFNBase):
 
         print(self)
 
-    def forward(self, coords):
+    def forward(self, coords, **args):
 
         outputs = []
         out = self.filters[0](coords)
