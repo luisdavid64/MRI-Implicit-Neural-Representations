@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersamping, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,7 +53,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
             dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None) 
         else:
             # Get data set without Undersampling
-            dataset = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
 
         # Create validation and traning laoders
         loader = DataLoader(dataset=dataset, 
@@ -78,8 +78,8 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
             dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
         else:
             # Use normal dataset
-            dataset_undersampled = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
-            dataset = MRIDatasetUndersamping(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+            dataset_undersampled = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
+            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
         
         # Create loader, note that we are using undersampled dataset in the traning loader
         loader = DataLoader(dataset=dataset_undersampled, 

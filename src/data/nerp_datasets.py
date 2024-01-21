@@ -386,7 +386,7 @@ class MRIDataset(Dataset):
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
 
-class MRIDatasetUndersamping(MRIDataset):
+class MRIDatasetUndersampling(MRIDataset):
     def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersamping=None):
         # Initialize undersampling attributes
         self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersamping)
@@ -474,7 +474,7 @@ class MRIDatasetUndersamping(MRIDataset):
 
 # Some Dataset variations including different data
 
-class MRIDatasetWithDistances(MRIDatasetUndersamping):
+class MRIDatasetWithDistances(MRIDatasetUndersampling):
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -489,7 +489,7 @@ class MRIDatasetWithDistances(MRIDatasetUndersamping):
                  normalization="max",
                  cat_coil=False,
                  cat_dists=False,
-                 undersamping = None
+                 undersampling = None
                  ):
         super().__init__(
                  data_class, 
@@ -504,7 +504,7 @@ class MRIDatasetWithDistances(MRIDatasetUndersamping):
                  per_coil_stats,
                  centercrop,
                  normalization,
-                 undersamping
+                 undersampling
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
         if cat_dists:
@@ -518,7 +518,7 @@ class MRIDatasetWithDistances(MRIDatasetUndersamping):
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
-class MRIDatasetDistanceAndAngle(MRIDatasetUndersamping):
+class MRIDatasetDistanceAndAngle(MRIDatasetUndersampling):
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -531,7 +531,7 @@ class MRIDatasetDistanceAndAngle(MRIDatasetUndersamping):
                  per_coil_stats=True,
                  centercrop=True,
                  normalization="max",
-                 undersamping=None
+                 undersampling=None
                  ):
         super().__init__(
                  data_class, 
@@ -546,7 +546,7 @@ class MRIDatasetDistanceAndAngle(MRIDatasetUndersamping):
                  per_coil_stats,
                  centercrop,
                  normalization,
-                 undersamping
+                 undersampling
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
         self.angle = torch.arctan(self.coords[...,1]/self.coords[...,2])

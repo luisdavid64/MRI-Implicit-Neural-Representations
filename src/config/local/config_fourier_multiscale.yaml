@@ -26,6 +26,8 @@ loss_opts:
 ################## 3D CT Image ###################
 # Model options (3D CT)
 model: Fourier                  # Options for MLP models [FFN | SIREN]
+bounded: False
+
 # pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
 net: 
   network_input_size: 512     # Input size for network
