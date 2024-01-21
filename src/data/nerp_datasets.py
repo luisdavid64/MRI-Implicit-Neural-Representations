@@ -403,7 +403,7 @@ class MRIDatasetUndersamping(MRIDataset):
         
         param_parsed = list()
         # But it also supports none
-        if arg == None:
+        if arg == None or arg.lower() == "none":
             # Return none, and emptly list
             return arg, param_parsed
         
@@ -449,7 +449,7 @@ class MRIDatasetUndersamping(MRIDataset):
             data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
         elif self.undersamping_argument == "random_line":
             data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
-        elif self.undersamping_argument == None:
+        elif self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
             
             # if it is set to not to undersample do the original function
             C,H,W,S = data.shape
