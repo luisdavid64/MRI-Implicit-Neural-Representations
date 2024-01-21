@@ -14,6 +14,13 @@ beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
 lr: 0.00003                    # Initial learning rate
  # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
+
+# Regularization
+# Supported L1 (Lasso), L2 (Ridge) or none
+regularization:
+  type: none # L1, L2 or None
+  strenght : 0.001 # lambda value
+
 ############### Loss modifications ################
 loss_opts:
   hdr_eps: 1e-2

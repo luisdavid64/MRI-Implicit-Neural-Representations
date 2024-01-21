@@ -94,11 +94,22 @@ else:
     NotImplementedError
 
 # Setup Regularization
-regularization_methods = {
-    "L1" : Regularization_L1(reg_strenght=0.001),
-    "L2" : Regularization_L2(reg_strenght=0.001)
-}
-regularization = regularization_methods.get(config["regularization"], None)
+# Check do we have regularization
+reguluzation_type = config["regularization"]["type"]
+if reguluzation_type == "none":
+    # if we do not have regularization
+    regularization = False
+else:
+    # if we have regularization
+    regularization_strength = config["regularization"]["strenght"]
+
+    regularization_methods = {
+        "L1" : Regularization_L1(reg_strength=regularization_strength),
+        "L2" : Regularization_L2(reg_strength=regularization_strength)
+    }
+    regularization = regularization_methods.get(config["regularization"]["type"], None)
+
+
 if regularization:
     print(f"Regularization is being used {type(regularization)}")
 # End of Regularization setup
@@ -124,7 +135,7 @@ dataset, data_loader, val_loader = get_data_loader(
     full_norm=config["full_norm"],
     normalization=config["normalization"],
     undersampling= config["undersampling"],
-    use_dists="yes"
+    use_dists="no"
 )
 
 bs = config["batch_size"]
@@ -133,9 +144,12 @@ C, H, W, S = image_shape
 print('Load image: {}'.format(dataset.file))
 
 train_image = torch.zeros(((C*H*W),S)).to(device)
-# Reconstruct image from val
+
+
+# Reconstruct image from val # we need to make sure here
 for it, (coords, gt, _) in enumerate(val_loader):
     train_image[it*bs:(it+1)*bs, :] = gt.to(device)
+
 train_image = train_image.reshape(C,H,W,S).cpu()
 k_space = torch.clone(train_image)
 if not in_image_space: # If in k-space apply inverse fourier trans
