@@ -26,7 +26,6 @@ loss_opts:
 ################## 3D CT Image ###################
 # Model options (3D CT)
 model: Fourier                  # Options for MLP models [FFN | SIREN]
-bounded: False
 # pretrain: /Users/luisreyes/Scripts/outputs/config_siren_kspace/brain/img_SIREN_512_512_8_HDR_lr1e-05_encoder_gauss_scale4_size256/checkpoints/model_000160.pt
 net: 
   network_input_size: 512     # Input size for network
@@ -42,10 +41,10 @@ encoder:
   coordinates_size: 3 
 
 # Data
-data: brain # or knee
+data: knee # or knee
 data_root: data 
 set: train
-slice: 5
+slice: 10
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
@@ -55,4 +54,9 @@ partition:
   no_steps: 40
   no_models: 4
 
-reconstruct_all: True
+# Undersamping paramters
+# Supported formats:
+#   grid-x*y          example: grid-3*3
+#   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
+#   none              So no undersamping
+undersampling: uniform_random-0.5
