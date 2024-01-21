@@ -381,15 +381,15 @@ class MRIDataset(Dataset):
         return self.shape
 
     def __getitem__(self, idx):
-        return self.coords[idx], self.image[idx]
+        return self.coords[idx], self.image[idx], list()
 
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
 
 class MRIDatasetUndersampling(MRIDataset):
-    def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersamping=None):
+    def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersampling=None):
         # Initialize undersampling attributes
-        self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersamping)
+        self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersampling)
 
         super().__init__(data_class, data_root, challenge, set, transform, sample, slice, full_norm, custom_file_or_path, per_coil_stats, centercrop, normalization)
 
