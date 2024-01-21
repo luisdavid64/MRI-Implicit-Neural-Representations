@@ -25,17 +25,17 @@ loss_opts:
 
 model: WIRE2D                   # Options for MLP models [FFN | SIREN]
 net: 
-  network_input_size: 512     # Input size for network
+  network_input_size: 3  #512     # Input size for network
   network_output_size: 2 
   network_depth: 8            # Depth of MLP layers
-  network_width: 512          # Width of MLP layers
+  network_width: 256 #512          # Width of MLP layers
   first_omega_0: 30
   hidden_omega_0: 30
   scale: 15
-  last_tanh: True             # Set this to true to use a tanh layer at the end
+  last_tanh: False #True             # Set this to true to use a tanh layer at the end
 
 encoder:
-  embedding: gauss            #  Input embedding method
+  embedding: none #gauss            #  Input embedding method
   scale: 4
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3
@@ -50,3 +50,10 @@ sample: 0
 transform: False      # Set to false for k-space
 full_norm: True
 normalization: max
+
+# Undersamping paramters
+# Supported formats:
+#   grid-x*y          example: grid-3*3
+#   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
+#   none              So no undersamping
+undersampling: uniform_random-0.5

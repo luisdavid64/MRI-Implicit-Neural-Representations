@@ -16,7 +16,8 @@ from typing import (
 )
 from math import ceil
 from torch.distributions import Normal
-
+from undersampling.undersampler import Undersampler
+from typing import Tuple
 
 def gaussian_kernel_1d(sigma: float, num_sigmas: float = 10.) -> torch.Tensor:
     
@@ -239,9 +240,15 @@ class MRIDataset(Dataset):
             title = "{} Data Statistics Per Coil".format("Image" if transform else "K-space")
             print("{}\n{}".format(title,table))
 
+        self.flatten_image_and_create_coords(data)
+
+    
+    def flatten_image_and_create_coords(self, data : torch.Tensor):
+        # It will take data and reshape it for flatten image and it will create cordinates for it
+        C,H,W,S = data.shape
         self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
         self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
-
+        
     @classmethod
     def __normalize_kspace(cls, k_space, type="max", eps=1e-9):
         print(type)
@@ -379,10 +386,95 @@ class MRIDataset(Dataset):
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
 
+class MRIDatasetUndersamping(MRIDataset):
+    def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersamping=None):
+        # Initialize undersampling attributes
+        self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersamping)
+
+        super().__init__(data_class, data_root, challenge, set, transform, sample, slice, full_norm, custom_file_or_path, per_coil_stats, centercrop, normalization)
+
+
+    
+    def parse_undersamping_argument(self, arg : str) -> Tuple[str, list]:
+        # This method will get argument and parse it and being put as list
+        # Argument should be in "function-params" type
+        # Example "grid-3*3", "grid-5*3" etc
+        # Example "random_line-0.5"
+        
+        param_parsed = list()
+        # But it also supports none
+        if arg == None:
+            # Return none, and emptly list
+            return arg, param_parsed
+        
+        parts = arg.split("-")
+        assert len(parts) == 2, f"Argument {arg} is incorrect"
+        argument_type, param = parts[0], parts[1]
+        
+
+        
+        if argument_type == "grid":
+            # Safety checks
+            assert "*" in param, "Please use * symbol for stating grid size"
+            
+            # Get dimensions
+            dimensions = param.split("*")
+
+            assert len(dimensions)==2, f"Grid dimensions provided ({param}) for undersamping is wrong please provide x*y format"
+
+            param_parsed.append(int(dimensions[0]))
+            param_parsed.append(int(dimensions[1]))
+
+            # str as argument type, parameters list
+            return argument_type, param_parsed
+        elif argument_type == "random_line":
+            # Here we are assuming param is a float value in between 0 to 1
+            random_value_p = float(param)
+            assert (random_value_p <= 1.0) and (random_value_p >= 0), "P value is not in range [0,1]"
+
+            # Add param value to param_parsed list
+            param_parsed.append(random_value_p)   
+
+            # Return argument types as str, then p value in the list
+            return argument_type, param_parsed
+        else:
+            raise ValueError(f"Argument {argument_type} is not supported")
+
+             
+
+    # we need to only override __flat
+    def flatten_image_and_create_coords(self, data : torch.Tensor):
+        # It will take data and reshape it for flatten image and it will create cordinates for it
+        if self.undersamping_argument == "grid":
+            data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
+        elif self.undersamping_argument == "random_line":
+            data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
+        elif self.undersamping_argument == None:
+            
+            # if it is set to not to undersample do the original function
+            C,H,W,S = data.shape
+            self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+            self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
+            
+            # Then we do not need to continue exit from here
+            return
+        else:
+            # Code should not come here
+            ValueError("Unsupported undersamping method")
+        
+        C,H,W,S  = data_undersampled.shape
+        
+        self.shape = data_undersampled.shape
+        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+        self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
+
+    def __len__(self):
+        return len(self.coords)
+
 
 # Some Dataset variations including different data
 
-class MRIDatasetWithDistances(MRIDataset):
+class MRIDatasetWithDistances(MRIDatasetUndersamping):
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -396,7 +488,8 @@ class MRIDatasetWithDistances(MRIDataset):
                  centercrop=True,
                  normalization="max",
                  cat_coil=False,
-                 cat_dists=False
+                 cat_dists=False,
+                 undersamping = None
                  ):
         super().__init__(
                  data_class, 
@@ -411,6 +504,7 @@ class MRIDatasetWithDistances(MRIDataset):
                  per_coil_stats,
                  centercrop,
                  normalization,
+                 undersamping
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
         if cat_dists:
@@ -424,7 +518,7 @@ class MRIDatasetWithDistances(MRIDataset):
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
-class MRIDatasetDistanceAndAngle(MRIDataset):
+class MRIDatasetDistanceAndAngle(MRIDatasetUndersamping):
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -436,7 +530,8 @@ class MRIDatasetDistanceAndAngle(MRIDataset):
                  custom_file_or_path = None,
                  per_coil_stats=True,
                  centercrop=True,
-                 normalization="max"
+                 normalization="max",
+                 undersamping=None
                  ):
         super().__init__(
                  data_class, 
@@ -450,7 +545,8 @@ class MRIDatasetDistanceAndAngle(MRIDataset):
                  custom_file_or_path,
                  per_coil_stats,
                  centercrop,
-                 normalization
+                 normalization,
+                 undersamping
         )
         self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
         self.angle = torch.arctan(self.coords[...,1]/self.coords[...,2])
