@@ -32,8 +32,8 @@ class Regularization_L1:
         return lasso_reg * self.reg_strength
 
 class Regularization_L2:
-    def __init__(self, reg_strenght : float = 0.001) -> None:
-        self.reg_strenght = reg_strenght
+    def __init__(self, reg_strength : float = 0.001) -> None:
+        self.reg_strength = reg_strength
     
     def __call__(self, model_paramaters: torch.Tensor) -> float:
         l2_reg = torch.sum(torch.sum(param.pow(2)) for param in model_paramaters)
