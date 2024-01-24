@@ -437,6 +437,14 @@ class MRIDatasetUndersampling(MRIDataset):
 
             # Return argument types as str, then p value in the list
             return argument_type, param_parsed
+        elif argument_type == "radial":
+            # Here we are assuming param is a float value in between 0 to 1
+            random_value_p = float(param)
+            # Add param value to param_parsed list
+            param_parsed.append(random_value_p)   
+
+            # Return argument types as str, then p value in the list
+            return argument_type, param_parsed
         else:
             raise ValueError(f"Argument {argument_type} is not supported")
 
@@ -449,6 +457,8 @@ class MRIDatasetUndersampling(MRIDataset):
             data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
         elif self.undersamping_argument == "random_line":
             data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
+        elif self.undersamping_argument == "radial":
+            data_undersampled, coords = Undersampler.undersample_radial(data, 4)
         elif self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
             
             # if it is set to not to undersample do the original function
