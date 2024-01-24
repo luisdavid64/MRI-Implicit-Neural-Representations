@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 import math
 import numpy as np
-from utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop
+from undersampling.utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop
 
 class Undersampler():
     
