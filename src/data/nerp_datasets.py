@@ -528,58 +528,5 @@ class MRIDatasetWithDistances(MRIDatasetUndersampling):
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
-class MRIDatasetDistanceAndAngle(MRIDatasetUndersampling):
-    def __init__(self, 
-                 data_class='brain', 
-                 data_root="data",
-                 challenge='multicoil', 
-                 set="train", 
-                 transform=True, 
-                 sample=0, slice=0, 
-                 full_norm=False, 
-                 custom_file_or_path = None,
-                 per_coil_stats=True,
-                 centercrop=True,
-                 normalization="max",
-                 undersampling=None
-                 ):
-        super().__init__(
-                 data_class, 
-                 data_root,
-                 challenge, 
-                 set, 
-                 transform, 
-                 sample, 
-                 slice, 
-                 full_norm,
-                 custom_file_or_path,
-                 per_coil_stats,
-                 centercrop,
-                 normalization,
-                 undersampling
-        )
-        self.dist_to_center = torch.sqrt(self.coords[...,1]**2 + self.coords[...,2]**2)
-        self.angle = torch.arctan(self.coords[...,1]/self.coords[...,2])
-        # coil, distance, angle
-        self.coords = torch.stack([self.coords[...,0], self.dist_to_center, self.angle], dim=-1)
-
-    def reset_distances(self, part_radii):
-        first = part_radii[1]
-        self.coords[...,1] = self.coords[...,1] - first
-        self.coords[...,1] = self.coords[...,1] / self.coords[...,1].max()
-        self.coords[...,2] = self.coords[...,2] / self.coords[...,2].max()
-
-
-
-    def __len__(self):
-        return self.total_length
-
-    def __getitem__(self, idx):
-        return self.coords[idx], self.image[idx], self.dist_to_center[idx], self.labels[idx]
-
-
-
-
-
 if __name__ == "__main__":
     x = MRIDataset(transform=False)
