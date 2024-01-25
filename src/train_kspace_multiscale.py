@@ -86,6 +86,7 @@ dataset, data_loader, val_loader = get_data_loader(
     shuffle=True,
     full_norm=config["full_norm"],
     normalization=config["normalization"],
+    undersampling= config["undersampling"],
     use_dists="yes"
 )
 

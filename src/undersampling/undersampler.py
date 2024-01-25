@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 import math
 import numpy as np
-from undersampling.utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop
+from undersampling.utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop, verify_acc_factor
 
 class Undersampler():
     
@@ -63,6 +63,7 @@ class Undersampler():
         return removed_odd_rows_tensor, grid
 
 
+
     @staticmethod
     def undersample_radial(images_tensor: torch.Tensor, acceleration) -> Tuple[torch.Tensor, torch.Tensor]:
         rng = np.random.RandomState()
@@ -109,6 +110,7 @@ class Undersampler():
         removed_radial_tensor = images_tensor
         removed_radial_tensor[:,mask,:] = 0
         # removed_radial_tensor = images_tensor[:, mask, :] 
+        print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
 
         return removed_radial_tensor, grid
 
