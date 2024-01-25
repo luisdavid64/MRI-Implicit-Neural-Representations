@@ -14,6 +14,7 @@ from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, stats_per_coil
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
 from models.regularization import Regularization_L1, Regularization_L2
+from log_handler.logger import INRLogger
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
@@ -38,8 +39,9 @@ if not(config['encoder']['embedding'] == 'none'):
     model_name += '_scale{}_size{}'.format(config['encoder']['scale'], config['encoder']['embedding_size'])
 print(model_name)
 
-train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
-output_directory = os.path.join(opts.output_path + "/outputs", model_name  + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+model_name = model_name + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+train_writer = INRLogger(os.path.join(opts.output_path + "/logs", model_name))
+output_directory = os.path.join(opts.output_path + "/outputs", model_name)
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
 shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
 
@@ -203,7 +205,7 @@ for epoch in range(max_epoch):
 
         if it % config['log_iter'] == config['log_iter'] - 1:
             train_loss = train_loss.item()
-            train_writer.add_scalar('train_loss', train_loss/config['log_iter'])
+            train_writer.log_train(train_loss, epoch * len(data_loader) + it + 1)
             print("[Epoch: {}/{}, Iteration: {}] Train loss: {:.4g}".format(epoch+1, max_epoch, it, train_loss))
             running_loss = 0
     if (epoch + 1) % config['val_epoch'] == 0:
@@ -245,11 +247,8 @@ for epoch in range(max_epoch):
         if test_ssim > best_ssim:
             best_ssim = test_ssim
             best_ssim_ep = epoch
-        # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
         save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}.png".format(epoch + 1, test_psnr))
-        train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
-        train_writer.add_scalar('test_psnr', test_psnr)
-        train_writer.add_scalar('test_ssim', test_ssim)
+        train_writer.log_test(running_loss/ len(data_loader), test_psnr, test_ssim, epoch+1)
         # Must transfer to .cpu() tensor firstly for saving images
         print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g} | Test ssim: {:.4g} \n Best psnr: {:.4g} @ epoch {} | Best ssim: {:.4g} @ epoch {}"
               .format(epoch + 1, max_epoch, test_running_loss / len(data_loader), test_psnr, test_ssim, best_psnr, best_psnr_ep, best_ssim, best_ssim_ep))

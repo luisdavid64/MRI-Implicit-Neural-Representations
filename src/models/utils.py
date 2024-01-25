@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances, MRIDatasetDistanceAndAngle
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
