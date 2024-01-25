@@ -44,6 +44,8 @@ The configuration file is the main entry point to modify the behavior of the INR
 
 * Multi-Scale: `["Fourier", "BoundedFourier"]`
 
+In particular, FourierNet and GaborNet are presented in [3]. We base our Multi-scale networks off of [4].
+
 ## Loss Choices: 
 
 Available Criteria: `["L2", "MSLE", "FFL", "L1", "HDR", "tanh"]`
@@ -87,3 +89,7 @@ undersampling: grid-2*1
 [1] Huang, W., Li, H., Cruz, G., Pan, J., Rueckert, D., & Hammernik, K. (2022). Neural Implicit k-Space for Binning-free Non-Cartesian Cardiac MR Imaging. Information Processing in Medical Imaging.
 
 [2] Chen, X., Liu, Y., Zhang, Z., Qiao, Y., & Dong, C. (2021). HDRUNet: Single Image HDR Reconstruction with Denoising and Dequantization. 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 354-363.
+
+[3] Fathony, R., Sahu, A., Willmott, D., & Kolter, J.Z. (2021). Multiplicative Filter Networks. International Conference on Learning Representations.
+
+[4] Lindell, D.B., Veen, D.V., Park, J.J., & Wetzstein, G. (2021). Bacon: Band-limited Coordinate Networks for Multiscale Scene Representation. 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 16231-16241.
