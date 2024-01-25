@@ -110,7 +110,7 @@ encoder = Positional_Encoder(config['encoder'], device=device)
 
 # Setup model
 model = None
-if config["bounded"]:
+if config['model'] == 'BoundedFourier':
     print("Bounded")
     model = MultiscaleBoundedFourier(config["net"], boundaries=pairs_model)
 else:
