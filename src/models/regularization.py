@@ -35,6 +35,6 @@ class Regularization_L2:
     def __init__(self, reg_strength : float = 0.001) -> None:
         self.reg_strength = reg_strength
     
-    def __call__(self, model_paramaters: torch.Tensor) -> float:
-        l2_reg = torch.sum(torch.sum(param.pow(2)) for param in model_paramaters)
+    def __call__(self, model_paramaters: torch.Generator) -> float:
+        l2_reg = abs(sum(torch.sum(param.pow(2)) for param in model_paramaters))
         return l2_reg * self.reg_strength
