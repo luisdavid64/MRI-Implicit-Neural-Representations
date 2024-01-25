@@ -59,6 +59,7 @@ def get_square_ordered_idxs(square_side_size: int, square_id: int) -> Tuple[Tupl
 
     return tuple(ordered_idxs)
 
+# We flip the mask provided by the code so we sum over 0
 def verify_acc_factor(mask):
-    acc = torch.numel(mask)/torch.count_nonzero(mask)
+    acc = torch.numel(mask)/(mask == 0).sum()
     return str(acc.item())
