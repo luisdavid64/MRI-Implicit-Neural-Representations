@@ -458,7 +458,7 @@ class MRIDatasetUndersampling(MRIDataset):
         elif self.undersamping_argument == "random_line":
             data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
         elif self.undersamping_argument == "radial":
-            data_undersampled, coords = Undersampler.undersample_radial(data, 4)
+            data_undersampled, coords = Undersampler.undersample_radial(data, self.undersamping_params[0])
         elif self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
             
             # if it is set to not to undersample do the original function
