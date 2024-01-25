@@ -50,9 +50,13 @@ Available Criteria: `["L2", "MSLE", "FFL", "L1", "HDR", "tanh"]`
 
 In Particular, HDR loss is presented in [1] and Tanh loss in [2].
 
+Generally, HDR is superior in recovering the K-space periphery if set up correctly. Otherwise, L2 and Tanh are good choices.
+
 ## Normalization
 
 Available Normalizations: `["abs_max", "max" "max_std", "coil"]`
+
+Generally, per-coil normalization `"coil"` and normalizing by the absolute max `"abs_max` are good choices.
 
 ## Clustering
 
