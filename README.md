@@ -35,11 +35,19 @@ Note that the clustering setup must be included in the config as in [this file](
 
 The configuration file is the main entry point to modify the behavior of the INR during training.
 
-Model Choices:
+## Model Choices:
 
-Single-Scale: `["SIREN", "WIRE", "WIRE2D", "FFN", "FOURIER", "GABOR"]`
+* Single-Scale: `["SIREN", "WIRE", "WIRE2D", "FFN", "FOURIER", "GABOR"]`
 
-Multi-Scale: `["Fourier", "BoundedFourier"]`
+* Multi-Scale: `["Fourier", "BoundedFourier"]`
+
+## Loss Choices: 
+
+Available Criteria: `["L2", "MSLE", "FFL", "L1", "HDR", "tanh"]`
+
+In Particular, HDR loss is presented in [1] and Tanh loss in [2]
+
+
 
 ## Clustering
 
@@ -63,3 +71,10 @@ Here we provide an example on how to set up the undersampling param
 undersampling: grid-2*1
 
 ```
+
+
+# References 
+
+[1] Huang, W., Li, H., Cruz, G., Pan, J., Rueckert, D., & Hammernik, K. (2022). Neural Implicit k-Space for Binning-free Non-Cartesian Cardiac MR Imaging. Information Processing in Medical Imaging.
+
+[2] Chen, X., Liu, Y., Zhang, Z., Qiao, Y., & Dong, C. (2021). HDRUNet: Single Image HDR Reconstruction with Denoising and Dequantization. 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 354-363.
