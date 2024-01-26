@@ -107,9 +107,9 @@ class Undersampler():
         grid = torch.hstack((Z.reshape(-1, 1),
                             Y.reshape(-1, 1),
                             X.reshape(-1, 1)))
-        removed_radial_tensor = images_tensor
-        removed_radial_tensor[:,mask,:] = 0
-        # removed_radial_tensor = images_tensor[:, mask, :] 
+        # removed_radial_tensor = images_tensor
+        # removed_radial_tensor[:,mask,:] = 0
+        removed_radial_tensor = images_tensor[:, mask, :] 
         print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
 
         return removed_radial_tensor, grid
