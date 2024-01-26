@@ -50,7 +50,7 @@ In particular, FourierNet and GaborNet are presented in [3]. We base our Multi-s
 
 Available Criteria: `["L2", "MSLE", "FFL", "L1", "HDR", "tanh"]`
 
-In Particular, HDR loss is presented in [1] and Tanh loss in [2].
+In Particular, HDR loss is presented in [1] and Tanh loss in [2]. LSL is a lightweight HDR loss.
 
 Generally, HDR is superior in recovering the K-space periphery if set up correctly. Otherwise, L2 and Tanh are good choices.
 
