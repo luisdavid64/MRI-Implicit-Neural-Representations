@@ -50,6 +50,11 @@ sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
 normalization: max
+all_slices: False
+slices:
+  - 0
+  - 2
+  - 4
 
 partition:
   no_steps: 40

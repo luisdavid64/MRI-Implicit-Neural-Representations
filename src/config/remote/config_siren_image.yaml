@@ -39,3 +39,8 @@ slice: 0
 sample: 0
 transform: True      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
+all_slices: False
+slices:
+  - 0
+  - 2
+  - 4
