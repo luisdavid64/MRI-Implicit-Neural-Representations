@@ -458,7 +458,7 @@ class MRIDatasetUndersampling(MRIDataset):
         elif self.undersamping_argument == "random_line":
             data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
         elif self.undersamping_argument == "radial":
-            data_undersampled, coords = Undersampler.undersample_radial(data, 4)
+            data_undersampled, coords = Undersampler.undersample_radial(data, self.undersamping_params[0])
         elif self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
             
             # if it is set to not to undersample do the original function
@@ -471,12 +471,19 @@ class MRIDatasetUndersampling(MRIDataset):
         else:
             # Code should not come here
             ValueError("Unsupported undersamping method")
+
+        if self.undersamping_argument == "radial":
+            C,P,S  = data_undersampled.shape
         
-        C,H,W,S  = data_undersampled.shape
+            self.shape = data_undersampled.shape
+            self.image = data_undersampled.reshape((C*P),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+            self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
+        else:
+            C,H,W,S  = data_undersampled.shape
         
-        self.shape = data_undersampled.shape
-        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
-        self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
+            self.shape = data_undersampled.shape
+            self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+            self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
 
     def __len__(self):
         return len(self.coords)

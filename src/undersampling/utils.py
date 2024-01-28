@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple
+import torch
 
 GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
 
@@ -57,3 +58,8 @@ def get_square_ordered_idxs(square_side_size: int, square_id: int) -> Tuple[Tupl
         ordered_idxs.append((row, square_id))
 
     return tuple(ordered_idxs)
+
+# We flip the mask provided by the code so we sum over 0
+def verify_acc_factor(mask):
+    acc = torch.numel(mask)/torch.count_nonzero(mask)
+    return str(acc.item())

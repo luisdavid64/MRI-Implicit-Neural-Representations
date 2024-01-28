@@ -3,7 +3,8 @@ from typing import Tuple
 import torch
 import math
 import numpy as np
-from undersampling.utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop
+from undersampling.utils import GOLDEN_RATIO, get_square_ordered_idxs, center_crop, verify_acc_factor
+import matplotlib.pyplot as plt
 
 class Undersampler():
     
@@ -63,8 +64,9 @@ class Undersampler():
         return removed_odd_rows_tensor, grid
 
 
+
     @staticmethod
-    def undersample_radial(images_tensor: torch.Tensor, acceleration) -> Tuple[torch.Tensor, torch.Tensor]:
+    def undersample_radial(images_tensor: torch.Tensor, acceleration, save_mask=True) -> Tuple[torch.Tensor, torch.Tensor]:
         rng = np.random.RandomState()
         assert images_tensor.dim() == 4, "For processing, please provide a 4-dimensional tensor as [batch_size, image_x, image_y, channel_n]"
         C,H,W,S = images_tensor.size()
@@ -74,7 +76,6 @@ class Undersampler():
         num_nested_squares = max_dim // 2
         M = int(np.prod(shape[1:3]) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
         mask = np.zeros((max_dim, max_dim), dtype=np.float32)
-
         t = rng.randint(low=0, high=1e4, size=1, dtype=int).item()
 
         for square_id in range(num_nested_squares):
@@ -95,7 +96,9 @@ class Undersampler():
 
         mask = np.pad(mask, pad, constant_values=0)
         mask = center_crop(torch.from_numpy(mask.astype(bool)), shape[1:3])
-        mask = ~mask
+        if save_mask:
+            plt.imshow(mask,cmap='gray')
+            plt.savefig("undersampling_mask.png")
         Z, Y, X = torch.meshgrid(torch.linspace(-1, 1, C),
                                 torch.linspace(-1, 1, H),
                                 torch.linspace(-1, 1, W))
@@ -106,9 +109,10 @@ class Undersampler():
         grid = torch.hstack((Z.reshape(-1, 1),
                             Y.reshape(-1, 1),
                             X.reshape(-1, 1)))
-        removed_radial_tensor = images_tensor
-        removed_radial_tensor[:,mask,:] = 0
-        # removed_radial_tensor = images_tensor[:, mask, :] 
+        # removed_radial_tensor = images_tensor
+        # removed_radial_tensor[:,mask,:] = 0
+        removed_radial_tensor = images_tensor[:, mask, :] 
+        print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
 
         return removed_radial_tensor, grid
 
