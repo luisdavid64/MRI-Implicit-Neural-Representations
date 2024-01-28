@@ -175,7 +175,7 @@ print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
     running_loss = 0
-    for it, (coords, gt, dist_to_center) in enumerate(data_loader):
+    for it, (coords, gt, mask_coords, dist_to_center) in enumerate(data_loader):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
@@ -213,7 +213,7 @@ for epoch in range(max_epoch):
         test_running_loss = 0
         im_recon = torch.zeros(((C*H*W),S)).to(device)
         with torch.no_grad():
-            for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+            for it, (coords, gt, mask_coords, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
                 kcoords = torch.clone(coords)
                 coords = coords.to(device=device)  # [bs, 3]
                 coords = encoder.embedding(coords) # [bs, 2*embedding size]

@@ -44,7 +44,7 @@ class TestAddFunction(unittest.TestCase):
         # Load this file
         dataset_undersampled = MRIDatasetUndersampling(data_class="knee", transform=True, custom_file_or_path=path, undersampling="grid-5*5")
 
-        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+        self.assertEqual(len(dataset) , len(dataset_undersampled))
     
     def test_MRIDatasetUndersampling_nonetest(self):
         path = "data/knee_multicoil_train/file1000801.h5"
@@ -58,7 +58,7 @@ class TestAddFunction(unittest.TestCase):
         # Load this file
         dataset_undersampled = MRIDatasetUndersampling(data_class="knee", transform=True, custom_file_or_path=path, undersampling="grid-5*5")
 
-        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+        self.assertEqual(len(dataset) , len(dataset_undersampled))
     
     def test_MRIDatasetWithDistances(self):
         path = "data/knee_multicoil_train/file1000801.h5"
@@ -71,7 +71,7 @@ class TestAddFunction(unittest.TestCase):
 
         dataset_undersampled = MRIDatasetWithDistances(data_class="knee", transform=False, custom_file_or_path=path, undersampling="grid-5*5")
 
-        self.assertEqual(len(dataset) // 25 , len(dataset_undersampled))
+        self.assertEqual(len(dataset) , len(dataset_undersampled))
 
 if __name__ == '__main__':
     unittest.main()

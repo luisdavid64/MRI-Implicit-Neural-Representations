@@ -1,5 +1,6 @@
 import json
 import os
+import h5py
 import yaml
 import torch
 from torch.utils.data import DataLoader
@@ -11,13 +12,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import fastmri
 
+
 def get_device(net_name):
-    device = ("cuda" if torch.cuda.is_available() else 
-                        ("mps" if torch.backends.mps.is_available() else "cpu"))
+    device = ("cuda" if torch.cuda.is_available() else
+              ("mps" if torch.backends.mps.is_available() else "cpu"))
 
     # if "WIRE" in net_name and device == "mps":
     #     return torch.device("cpu")
     return torch.device(device)
+
 
 def get_config(config):
     if config.endswith(".json"):
@@ -25,6 +28,7 @@ def get_config(config):
             return json.load(jf)
     with open(config, 'r') as stream:
         return yaml.load(stream, Loader=yaml.Loader)
+
 
 def prepare_sub_folder(output_directory):
     image_directory = os.path.join(output_directory, 'images')
@@ -49,64 +53,117 @@ def collate_inr(batch):
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
-                    num_workers=0,  sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False, normalization="max", use_dists="no", undersampling=None):
-
-     # Safety check
+                    num_workers=0, sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False,
+                    normalization="max", use_dists="no", undersampling=None):
+    # Safety check
     assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
 
     # Firstly if we are going to use undersampling we need to make sure that our validation loader should have normal version
     # let's firstly check if we are going to have undersampling or not
-    
+
     if undersampling == None:
         # we do not have undersampling therefore normal operation
         if use_dists == "yes" or use_dists == True:
-            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None) 
+            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform,
+                                              sample=sample, slice=slice, full_norm=full_norm,
+                                              normalization=normalization, undersampling=None)
         else:
             # Get data set without Undersampling
-            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform,
+                                              sample=sample, slice=slice, full_norm=full_norm,
+                                              normalization=normalization, undersampling=None)
 
         # Create validation and traning laoders
-        loader = DataLoader(dataset=dataset, 
-                        batch_size=batch_size, 
-                        shuffle=False, 
-                        drop_last=False, 
-                        num_workers=num_workers)
+        loader = DataLoader(dataset=dataset,
+                            batch_size=batch_size,
+                            shuffle=False,
+                            drop_last=False,
+                            num_workers=num_workers)
 
-        val_loader = DataLoader(dataset=dataset, 
-                        batch_size=batch_size, 
-                        shuffle=False, 
-                        drop_last=False, 
-                        num_workers=num_workers,
-                        pin_memory=True
-                )
-    
+        val_loader = DataLoader(dataset=dataset,
+                                batch_size=batch_size,
+                                shuffle=False,
+                                drop_last=False,
+                                num_workers=num_workers,
+                                pin_memory=True
+                                )
+
     else:
         # if we have undersampling, we need to have sepeare data set
         if use_dists == "yes" or use_dists == True:
             # then get normal data set and undersampled dataset
-            dataset_undersampled = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
-            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
+            dataset_undersampled = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set,
+                                                           transform=transform, sample=sample, slice=slice,
+                                                           full_norm=full_norm, normalization=normalization,
+                                                           undersampling=undersampling)
+            dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform,
+                                              sample=sample, slice=slice, full_norm=full_norm,
+                                              normalization=normalization, undersampling=None)
         else:
             # Use normal dataset
-            dataset_undersampled = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=undersampling)
-            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform, sample=sample, slice=slice, full_norm=full_norm, normalization = normalization, undersampling=None)
-        
-        # Create loader, note that we are using undersampled dataset in the traning loader
-        loader = DataLoader(dataset=dataset_undersampled, 
-                        batch_size=batch_size, 
-                        shuffle=False, 
-                        drop_last=False, 
-                        num_workers=num_workers)
+            dataset_undersampled = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set,
+                                                           transform=transform, sample=sample, slice=slice,
+                                                           full_norm=full_norm, normalization=normalization,
+                                                           undersampling=undersampling)
+            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform,
+                                              sample=sample, slice=slice, full_norm=full_norm,
+                                              normalization=normalization, undersampling=None)
 
-        val_loader = DataLoader(dataset=dataset, 
-                        batch_size=batch_size, 
-                        shuffle=False, 
-                        drop_last=False, 
-                        num_workers=num_workers,
-                        pin_memory=True
-                )
-    #return normal not undersampled data set, then undersampled loader if, and normal validation loader
+        # Create loader, note that we are using undersampled dataset in the traning loader
+        loader = DataLoader(dataset=dataset_undersampled,
+                            batch_size=batch_size,
+                            shuffle=False,
+                            drop_last=False,
+                            num_workers=num_workers)
+
+        val_loader = DataLoader(dataset=dataset,
+                                batch_size=batch_size,
+                                shuffle=False,
+                                drop_last=False,
+                                num_workers=num_workers,
+                                pin_memory=True
+                                )
+    # return normal not undersampled data set, then undersampled loader if, and normal validation loader
     return dataset, loader, val_loader
+
+
+def get_multiple_slices_dataloader(data, data_root, set, batch_size, transform=True,
+                                   num_workers=0, sample=0, all_slices=False, challenge="multicoil", shuffle=True,
+                                   full_norm=False, normalization="max", use_dists="no", undersampling=None, slices=None):
+
+    assert all_slices or slices, "No SLICES found, either mark all_slices=True or " \
+                                                "pass a list of slices as 'slices=[0, 2, 4]' parameter"
+
+    if all_slices:
+        # Malformed scans
+        fnames_filter = ['file_brain_AXT2_200_2000446.h5',
+                         'file_brain_AXT2_201_2010556.h5',
+                         'file_brain_AXT2_208_2080135.h5',
+                         'file_brain_AXT2_207_2070275.h5',
+                         'file_brain_AXT2_208_2080163.h5',
+                         'file_brain_AXT2_207_2070549.h5',
+                         'file_brain_AXT2_207_2070254.h5',
+                         'file_brain_AXT2_202_2020292.h5',
+                         ]
+        path_to_dataset = "{}/{}_{}_{}/".format(data_root, data, challenge, set)
+
+        files = sorted(os.listdir(path_to_dataset))
+        files = [f for f in files if f not in fnames_filter]
+        loaded_sample = h5py.File(files[sample].resolve(), 'r')
+        slices = list(range(loaded_sample["kspace"][()].shape[0]))
+
+    datasets, loaders, val_loaders = [], [], []
+
+    for _slice in slices:
+        ds, dl, vl = get_data_loader(data=data, data_root=data_root, set=set, batch_size=batch_size,
+                                     transform=transform, num_workers=num_workers, sample=sample, slice=_slice,
+                                     challenge=challenge, shuffle=shuffle, full_norm=full_norm,
+                                     normalization=normalization, use_dists=use_dists, undersampling=undersampling)
+        datasets.append(ds)
+        loaders.append(dl)
+        val_loaders.append(vl)
+
+    return datasets, loaders, val_loaders, slices
 
 
 def save_image_3d(tensor, slice_idx, file_name):
@@ -117,7 +174,6 @@ def save_image_3d(tensor, slice_idx, file_name):
     tensor = tensor[0, slice_idx, ...].permute(0, 3, 1, 2).cpu().data  # [c, 1, h, w]
     image_grid = vutils.make_grid(tensor, nrow=image_num, padding=0, normalize=True, scale_each=True)
     vutils.save_image(image_grid, file_name, nrow=1)
-
 
 
 def map_coordinates(input, coordinates):
@@ -148,8 +204,9 @@ def map_coordinates(input, coordinates):
 
     fx1 = f00 + d1 * (f10 - f00)
     fx2 = f01 + d1 * (f11 - f01)
-    
+
     return fx1 + d2 * (fx2 - fx1)
+
 
 def ssim(x, xhat):
     if torch.is_tensor(x):
@@ -157,7 +214,8 @@ def ssim(x, xhat):
     if torch.is_tensor(xhat):
         xhat = xhat.numpy()
     data_range = np.maximum(x.max(), xhat.max()) - np.minimum(x.min(), xhat.min())
-    return structural_similarity(x,xhat, data_range=data_range)
+    return structural_similarity(x, xhat, data_range=data_range)
+
 
 def psnr(x, xhat, epsilon=1e-10):
     ''' Compute Peak Signal to Noise Ratio in dB
@@ -171,15 +229,17 @@ def psnr(x, xhat, epsilon=1e-10):
     '''
     denom = torch.mean((x - xhat) ** 2)
 
-    snrval = 10*torch.log10(torch.max(x)/(denom + epsilon))
+    snrval = 10 * torch.log10(torch.max(x) / (denom + epsilon))
 
     return snrval
+
 
 # Save MRI image with matplotlib
 def save_im(image, image_directory, image_name, is_kspace=False, smoothing_factor=8, vmax=None, vmin=None):
     if not is_kspace:
         if vmin and vmax:
-            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray", vmin=vmin, vmax=vmax)
+            plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray",
+                       vmin=vmin, vmax=vmax)
         else:
             plt.imsave(os.path.join(image_directory, image_name), np.abs(image.numpy()), format="png", cmap="gray")
     else:
@@ -194,17 +254,18 @@ def save_im(image, image_directory, image_name, is_kspace=False, smoothing_facto
 
     plt.clf()
 
+
 def stats_per_coil(im_recon, C):
     stats_coil = []
     for i in range(C):
-        mean = (im_recon[i,:,:,:].mean())
-        std = (im_recon[i,:,:,:].std())
-        max = (im_recon[i,:,:,:].max())
-        min = (im_recon[i,:,:,:].min())
+        mean = (im_recon[i, :, :, :].mean())
+        std = (im_recon[i, :, :, :].std())
+        max = (im_recon[i, :, :, :].max())
+        min = (im_recon[i, :, :, :].min())
         stats_coil.append(
             (i, mean, std, max, min)
         )
     headers = ["coil", "mean", "std", "max", "min"]
     table = tabulate(stats_coil, headers=headers)
     title = "{} Reconstruction Statistics Per Coil".format("K-space")
-    print("{}\n{}".format(title,table))
+    print("{}\n{}".format(title, table))
