@@ -54,7 +54,7 @@ def collate_inr(batch):
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
                     num_workers=0, sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False,
-                    normalization="max", use_dists="no", undersampling=None):
+                    normalization="max", use_dists="no", undersampling=None, per_coil=True):
     # Safety check
     assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
 
@@ -72,6 +72,9 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
             dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform,
                                               sample=sample, slice=slice, full_norm=full_norm,
                                               normalization=normalization, undersampling=None)
+
+        if per_coil:
+            dataset = MRICoilWrapperDataset(dataset=dataset)
 
         # Create validation and traning laoders
         loader = DataLoader(dataset=dataset,
@@ -109,6 +112,8 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                               sample=sample, slice=slice, full_norm=full_norm,
                                               normalization=normalization, undersampling=None)
 
+        if per_coil:
+            dataset = MRICoilWrapperDataset(dataset=dataset_undersampled)
         # Create loader, note that we are using undersampled dataset in the traning loader
         loader = DataLoader(dataset=dataset_undersampled,
                             batch_size=batch_size,

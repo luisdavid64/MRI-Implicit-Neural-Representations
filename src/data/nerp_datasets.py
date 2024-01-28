@@ -474,7 +474,7 @@ class MRIDatasetUndersampling(MRIDataset):
         self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1)
         self.shape = data_undersampled.shape
         self.coords = coords # Dim: (C*H*W,3)
-        self.coords_mask = coords_mask.reshape() # Dim: (C*H*W,3) undersampling points
+        self.coords_mask = coords_mask # Dim: (C*H*W,3) undersampling points
 
     def __len__(self):
         return len(self.coords)
@@ -541,7 +541,7 @@ class MRICoilWrapperDataset(Dataset):
     """
 
     def __init__(self, 
-                 dataset = None,
+                 dataset,
                  ):
         self.dataset = dataset
         C = self.dataset.shape
