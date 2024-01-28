@@ -381,7 +381,7 @@ class MRIDataset(Dataset):
         return self.shape
 
     def __getitem__(self, idx):
-        return self.coords[idx], self.image[idx], list()
+        return self.coords[idx], self.image[idx], list(), list()
 
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
@@ -485,7 +485,7 @@ class MRIDatasetUndersampling(MRIDataset):
         # cordinates normal, image, cordinate mask occording to undersampeld or not
     def __getitem__(self, idx):
         
-        return self.coords[idx], self.image[idx], self.coords_mask[idx]
+        return self.coords[idx], self.image[idx], self.coords_mask[idx], list()
 
 
 # Some Dataset variations including different data
