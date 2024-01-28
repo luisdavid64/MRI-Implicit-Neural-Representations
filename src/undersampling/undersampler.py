@@ -97,16 +97,15 @@ class Undersampler():
         self.__mask_image = mask
 
     # RADIAL LINE BASED UNDERSAMPLING
-    def create_mask_for_radial_based_undersampling(self,image_shape, acceleration: int):
+    def create_mask_for_radial_based_undersampling(self, image_shape, acceleration: int, save_mask: bool = True):
         rng = np.random.RandomState()
         assert acceleration != 0, "Acceleration cannot be zero"
-
+    
         max_dim = max(image_shape[1:3]) - max(image_shape[1:3]) % 2
         min_dim = min(image_shape[1:3]) - min(image_shape[1:3]) % 2
         num_nested_squares = max_dim // 2
         M = int(np.prod(image_shape[1:3]) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
         mask = np.zeros((max_dim, max_dim), dtype=np.float32)
-
         t = rng.randint(low=0, high=1e4, size=1, dtype=int).item()
 
         for square_id in range(num_nested_squares):
@@ -127,9 +126,13 @@ class Undersampler():
 
         mask = np.pad(mask, pad, constant_values=0)
         mask = center_crop(torch.from_numpy(mask.astype(bool)), image_shape[1:3])
-        mask = ~mask
-
-        # set mask
+        
+        # Save mask for visualization
+        if save_mask:
+            plt.imshow(mask,cmap='gray')
+            plt.savefig("undersampling_mask.png")
+        
+        print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
         self.__mask_image = mask
 
 
