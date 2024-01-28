@@ -58,9 +58,6 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
     # Safety check
     assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
 
-    # Firstly if we are going to use undersampling we need to make sure that our validation loader should have normal version
-    # let's firstly check if we are going to have undersampling or not
-
     if undersampling == None:
         # we do not have undersampling therefore normal operation
         if use_dists == "yes" or use_dists == True:
@@ -92,7 +89,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                 )
 
     else:
-        # if we have undersampling, we need to have sepeare data set
+        # if we have undersampling, we need to separate data
         if use_dists == "yes" or use_dists == True:
             # then get normal data set and undersampled dataset
             dataset_undersampled = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set,
@@ -114,7 +111,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
 
         if per_coil:
             dataset = MRICoilWrapperDataset(dataset=dataset_undersampled)
-        # Create loader, note that we are using undersampled dataset in the traning loader
+
         loader = DataLoader(dataset=dataset_undersampled,
                             batch_size=batch_size,
                             shuffle=False,
@@ -128,7 +125,6 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                 num_workers=num_workers,
                                 pin_memory=True
                                 )
-    # return normal not undersampled data set, then undersampled loader if, and normal validation loader
     return dataset, loader, val_loader
 
 
