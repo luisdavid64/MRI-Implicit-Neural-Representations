@@ -585,10 +585,14 @@ class MRICoilWrapperDataset(Dataset):
         img = self.image[idx].reshape(-1, 1)
         coords = self.coords[idx].reshape(-1,self.coord_size)
         if type(self.dataset) is MRIDatasetWithDistances:
-            dists = self.dist_to_center[idx].reshape(-1,1)
+            dists = self.dataset.dist_to_center[idx].reshape(-1,1)
+            if self.dataset.undersampling != None:
+                mask = self.dataset.mask[idx].reshape(-1,1)
+                return coords, img, mask, dists
             return coords, img, dists, list()
         elif type(self.dataset) is MRIDatasetUndersampling:
-            return coords, img, self.dataset.mask, list()
+            mask = self.dataset.mask[idx].reshape(-1,1)
+            return coords, img, mask, list()
         else:
             return coords, img, list(), list()
 
