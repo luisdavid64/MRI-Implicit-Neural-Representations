@@ -450,36 +450,42 @@ class MRIDatasetUndersampling(MRIDataset):
 
              
 
-    # we need to only override __flat
+    # we need to only override __flat 
     def flatten_image_and_create_coords(self, data : torch.Tensor):
-        # It will take data and reshape it for flatten image and it will create cordinates for it
-        if self.undersamping_argument == "grid":
-            data_undersampled, coords = Undersampler.undersample_grid(data, self.undersamping_params[0], self.undersamping_params[1])
-        elif self.undersamping_argument == "random_line":
-            data_undersampled, coords = Undersampler.undersample_random_line(data, self.undersamping_params[0])
-        elif self.undersamping_argument == "radial":
-            data_undersampled, coords = Undersampler.undersample_radial(data, 4)
-        elif self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
-            
-            # if it is set to not to undersample do the original function
-            C,H,W,S = data.shape
+        C,H,W,S = data.shape
+        # Firstly we should check that do we want undersampling
+        if self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
+            # Then we do not want undersamping
+            # original function
             self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
             self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
             
             # Then we do not need to continue exit from here
             return
-        else:
-            # Code should not come here
-            ValueError("Unsupported undersamping method")
+
+        # if we want undersampling we need to create Undersamper with its constructor
+        self.undersampler = Undersampler(self.undersamping_argument)
         
-        C,H,W,S  = data_undersampled.shape
-        
+        # call the undersampler withy apply and provide the params list and data
+        # this return
+        #   mask applied/undersampled data, normal cordinates, mask for cordinates
+        data_undersampled, coords, coords_mask = self.undersampler.apply(data, self.undersamping_params)
+
+
         self.shape = data_undersampled.shape
-        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
-        self.coords = coords # Dim: (C*H*W,3), flattened 2d coords with coil dim
+        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1)
+        self.coords = coords # Dim: (C*H*W,3)
+        self.coords_mask = coords_mask # Dim: (C*H*W,3) undersampling points
 
     def __len__(self):
         return len(self.coords)
+    
+    # Here we need to override it __getitem__
+    # This will return 
+        # cordinates normal, image, cordinate mask occording to undersampeld or not
+    def __getitem__(self, idx):
+        
+        return self.coords[idx], self.image[idx], self.coords_mask[idx]
 
 
 # Some Dataset variations including different data
