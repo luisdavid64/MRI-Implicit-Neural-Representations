@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances, MRICoilWrapperDataset
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,6 +36,16 @@ def prepare_sub_folder(output_directory):
         print("Creating directory: {}".format(checkpoint_directory))
         os.makedirs(checkpoint_directory)
     return checkpoint_directory, image_directory
+
+# This collate function keeps the dimension as (Batch, No Points)
+def collate_inr(batch):
+    batch = torch.utils.data._utils.collate.default_collate(batch)
+    for i in range(len(batch)):
+        if isinstance(batch[i], torch.Tensor):
+            if len(batch[i].shape) > 2:
+                batch[i] = torch.squeeze(batch[i], dim=0)
+    return batch
+
 
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,

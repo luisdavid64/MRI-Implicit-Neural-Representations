@@ -1,12 +1,12 @@
 # Logger options
 log_iter: 10                 # How often to log the training loss 
-val_epoch: 5               # How often to validate testing and save output images during training
+val_epoch: 10               # How often to validate testing and save output images during training
 image_save_epoch: 100        # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000                # Maximum number of training iterations
-batch_size: 20000            # Batch size (320x320)
+max_epoch: 4000                # Maximum number of training iterations
+batch_size: 1            # Batch size (320x320)
 loss: LSL
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
@@ -46,7 +46,7 @@ encoder:
 data: knee # or knee
 data_root: data 
 set: train
-slice: 10
+slice: 0
 sample: 0
 transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
@@ -61,4 +61,4 @@ partition:
 #   grid-x*y          example: grid-3*3
 #   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
 #   none              So no undersamping
-undersampling: radial-4 
+undersampling: radial-2
