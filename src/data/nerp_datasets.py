@@ -488,8 +488,10 @@ class MRIDatasetUndersampling(MRIDataset):
     # This will return 
         # cordinates normal, image, cordinate mask occording to undersampeld or not
     def __getitem__(self, idx):
-        
-        return self.coords[idx], self.image[idx], self.coords_mask[idx], list()
+        if self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
+            return self.coords[idx], self.image[idx], list(), list()
+        else:
+            return self.coords[idx], self.image[idx], self.coords_mask[idx], list()
 
 
 # Some Dataset variations including different data
