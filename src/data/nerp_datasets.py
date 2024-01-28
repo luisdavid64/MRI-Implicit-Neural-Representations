@@ -471,9 +471,13 @@ class MRIDatasetUndersampling(MRIDataset):
         #   mask applied/undersampled data, normal cordinates, mask for cordinates
         data_undersampled, coords, coords_mask = self.undersampler.apply(data, self.undersamping_params)
 
-
+        if self.undersamping_argument == "radial":
+            C,P,S  = data_undersampled.shape
+            self.image = data_undersampled.reshape((C*P),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
+        else:
+            self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1)
+        
         self.shape = data_undersampled.shape
-        self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1)
         self.coords = coords # Dim: (C*H*W,3)
         self.coords_mask = coords_mask # Dim: (C*H*W,3) undersampling points
 
