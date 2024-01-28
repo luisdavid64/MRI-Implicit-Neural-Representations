@@ -484,7 +484,7 @@ class MRIDatasetUndersampling(MRIDataset):
         # cordinates normal, image, cordinate mask occording to undersampeld or not
     def __getitem__(self, idx):
         
-        return self.coords[idx], self.image[idx], self.coords_mask[idx], list()
+        return self.coords[idx], self.image[idx], self.coords_mask, list()
 
 
 # Some Dataset variations including different data
@@ -541,34 +541,10 @@ class MRICoilWrapperDataset(Dataset):
     """
 
     def __init__(self, 
-                 dataset_class=MRIDataset,
-                 data_root="data",
-                 challenge='multicoil', 
-                 set="train", 
-                 transform=True, 
-                 sample=0, slice=0, 
-                 full_norm=False, 
-                 custom_file_or_path = None,
-                 per_coil_stats=True,
-                 centercrop=True,
-                 normalization="max",
-                 undersampling = None,
+                 dataset = None,
                  ):
-        self.dataset = dataset_class(
-            data_root,
-            challenge, 
-            set, 
-            transform, 
-            sample, 
-            slice, 
-            full_norm,
-            custom_file_or_path,
-            per_coil_stats,
-            centercrop,
-            normalization,
-            undersampling
-        )
-        C,H,W,S = self.dataset.shape
+        self.dataset = dataset
+        C = self.dataset.shape
         self.len = C
         self.img_shape = self.dataset.img_shape
         self.file = self.dataset.file
