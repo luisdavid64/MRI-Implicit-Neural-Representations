@@ -237,7 +237,7 @@ class MRIDataset(Dataset):
                 )
             headers = ["coil", "mean", "std", "max", "min"]
             table = tabulate(stats_coil, headers=headers)
-            title = "{} Data Statistics Per Coil".format("Image" if transform else "K-space")
+            title = "{} Data Statistics Per Coil at slice {}".format("Image" if transform else "K-space", slice)
             print("{}\n{}".format(title,table))
 
         self.flatten_image_and_create_coords(data)
@@ -527,6 +527,7 @@ class MRIDatasetWithDistances(MRIDatasetUndersampling):
             # return self.coords[idx,[1,2]], self.image[idx], self.coords[idx,[0,-1]]
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
+
 
 if __name__ == "__main__":
     x = MRIDataset(transform=False)
