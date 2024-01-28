@@ -535,73 +535,6 @@ class MRIDatasetWithDistances(MRIDatasetUndersampling):
         else: 
             return self.coords[idx], self.image[idx], self.dist_to_center[idx]
 
-# Only Relevant for Undersamplings
-# class MRICoilWrapperDataset(Dataset):
-#     """
-#         A wrapper for our MRIDataset that samples data one coil at a time
-#         instead of per pixel. This allows us to compute regularization on
-#         undersampled pixels, such as Total Variation
-#     """
-
-#     def __init__(self, 
-#                  data_class='brain', 
-#                  data_root="data",
-#                  challenge='multicoil', 
-#                  set="train", 
-#                  transform=True, 
-#                  sample=0, slice=0, 
-#                  full_norm=False, 
-#                  custom_file_or_path = None,
-#                  per_coil_stats=True,
-#                  centercrop=True,
-#                  normalization="max",
-#                  undersampling = None,
-#                  use_dists = False
-#                  ):
-#         self.use_dists = use_dists
-#         dataset_class = MRIDatasetWithDistances if use_dists else MRIDatasetUndersampling
-#         self.coord_size = 4 if use_dists else 3
-#         self.dataset = dataset_class(
-#             data_class, 
-#             data_root,
-#             challenge, 
-#             set, 
-#             transform, 
-#             sample, 
-#             slice, 
-#             full_norm,
-#             custom_file_or_path,
-#             per_coil_stats,
-#             centercrop,
-#             normalization,
-#             undersampling
-#         )
-#         C,H,W,S = self.dataset.shape
-#         self.len = C
-#         self.img_shape = self.dataset.img_shape
-#         self.file = self.dataset.file
-#         self.shape = self.dataset.shape
-#         self.image = self.dataset.image
-#         self.coords = self.dataset.coords
-#         self.image = self.image.reshape((C,H,W,-1))
-#         self.coords = self.coords.reshape((C,H,W,-1))
-#         # Reshape to original 
-#         if use_dists:
-#             self.dist_to_center = self.dataset.dist_to_center
-#             self.dist_to_center = self.dist_to_center.reshape((C,H,W,-1))
-    
-#     def __len__(self):
-#         return self.len
-
-#     def __getitem__(self, idx):
-#         img = self.image[idx].reshape(-1, 1)
-#         coords = self.coords[idx].reshape(-1,self.coord_size)
-#         if self.use_dists:
-#             dists = self.dist_to_center[idx].reshape(-1,1)
-#             return coords, img, dists 
-#         else:
-#             return coords, img
-
 class MRICoilWrapperDataset(Dataset):
     """
         A wrapper for our MRIDataset that samples data one coil at a time
@@ -610,7 +543,7 @@ class MRICoilWrapperDataset(Dataset):
     """
 
     def __init__(self, 
-                 data_class='brain', 
+                 dataset_class=MRIDataset,
                  data_root="data",
                  challenge='multicoil', 
                  set="train", 
@@ -625,10 +558,8 @@ class MRICoilWrapperDataset(Dataset):
                  use_dists = False
                  ):
         self.use_dists = use_dists
-        dataset_class = MRIDatasetWithDistances if use_dists else MRIDatasetUndersampling
         self.coord_size = 4 if use_dists else 3
         self.dataset = dataset_class(
-            data_class, 
             data_root,
             challenge, 
             set, 
