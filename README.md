@@ -86,6 +86,10 @@ Note: In order to use line sampling, we have not implemented seperate implementa
 For Column sampling use grid-n*1  where n is the accelartion in column axsis
 For Row sampling use grid-1*n     where n is the accelartion in row axsis
 
+## Special Batching:
+
+To set the dataloader to load batches per coil, please set the parameter `per_coil: True` in the config file
+
 # References 
 
 [1] Huang, W., Li, H., Cruz, G., Pan, J., Rueckert, D., & Hammernik, K. (2022). Neural Implicit k-Space for Binning-free Non-Cartesian Cardiac MR Imaging. Information Processing in Medical Imaging.
