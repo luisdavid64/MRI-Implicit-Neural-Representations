@@ -448,22 +448,16 @@ class MRIDatasetUndersampling(MRIDataset):
         else:
             raise ValueError(f"Argument {argument_type} is not supported")
 
-             
-
-    # we need to only override __flat 
     def flatten_image_and_create_coords(self, data : torch.Tensor):
         C,H,W,S = data.shape
-        # Firstly we should check that do we want undersampling
         if self.undersampling_argument == None or self.undersampling_argument.lower() == "none":
-            # Then we do not want undersampling
-            # original function
             self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
             self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
             
             # Then we do not need to continue exit from here
             return
 
-        # if we want undersampling we need to create Undersamper with its constructor
+        # if we want undersampling we need to create Undersampler with its constructor
         self.undersampler = Undersampler(self.undersampling_argument)
         
         # call the undersampler withy apply and provide the params list and data
