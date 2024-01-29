@@ -389,13 +389,13 @@ class MRIDataset(Dataset):
 class MRIDatasetUndersampling(MRIDataset):
     def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersampling=None):
         # Initialize undersampling attributes
-        self.undersamping_argument, self.undersamping_params = self.parse_undersamping_argument(undersampling)
+        self.undersampling_argument, self.undersampling_params = self.parse_undersampling_argument(undersampling)
 
         super().__init__(data_class, data_root, challenge, set, transform, sample, slice, full_norm, custom_file_or_path, per_coil_stats, centercrop, normalization)
 
 
     
-    def parse_undersamping_argument(self, arg : str) -> Tuple[str, list]:
+    def parse_undersampling_argument(self, arg : str) -> Tuple[str, list]:
         # This method will get argument and parse it and being put as list
         # Argument should be in "function-params" type
         # Example "grid-3*3", "grid-5*3" etc
@@ -420,7 +420,7 @@ class MRIDatasetUndersampling(MRIDataset):
             # Get dimensions
             dimensions = param.split("*")
 
-            assert len(dimensions)==2, f"Grid dimensions provided ({param}) for undersamping is wrong please provide x*y format"
+            assert len(dimensions)==2, f"Grid dimensions provided ({param}) for undersampling is wrong please provide x*y format"
 
             param_parsed.append(int(dimensions[0]))
             param_parsed.append(int(dimensions[1]))
@@ -454,8 +454,8 @@ class MRIDatasetUndersampling(MRIDataset):
     def flatten_image_and_create_coords(self, data : torch.Tensor):
         C,H,W,S = data.shape
         # Firstly we should check that do we want undersampling
-        if self.undersamping_argument == None or self.undersamping_argument.lower() == "none":
-            # Then we do not want undersamping
+        if self.undersampling_argument == None or self.undersampling_argument.lower() == "none":
+            # Then we do not want undersampling
             # original function
             self.image = data.reshape((C*H*W),S) # Dim: (C*H*W,1), flattened 2d image with coil dim
             self.coords = create_coords(C,H,W) # Dim: (C*H*W,3), flattened 2d coords with coil dim
@@ -464,12 +464,12 @@ class MRIDatasetUndersampling(MRIDataset):
             return
 
         # if we want undersampling we need to create Undersamper with its constructor
-        self.undersampler = Undersampler(self.undersamping_argument)
+        self.undersampler = Undersampler(self.undersampling_argument)
         
         # call the undersampler withy apply and provide the params list and data
         # this return
         #   mask applied/undersampled data, normal cordinates, mask for cordinates
-        data_undersampled, coords, coords_mask = self.undersampler.apply(data, self.undersamping_params)
+        data_undersampled, coords, coords_mask = self.undersampler.apply(data, self.undersampling_params)
 
         self.image = data_undersampled.reshape((C*H*W),S) # Dim: (C*H*W,1)
         self.shape = data_undersampled.shape
@@ -542,15 +542,19 @@ class MRICoilWrapperDataset(Dataset):
 
     def __init__(self, 
                  dataset,
+                 undersampling=True,
+                 coord_size=3
                  ):
         self.dataset = dataset
-        C = self.dataset.shape
-        self.len = C
+        self.coord_size = coord_size
+        # Set the length equal to #coils
+        self.len = self.dataset.shape[0]
         self.img_shape = self.dataset.img_shape
         self.file = self.dataset.file
         self.shape = self.dataset.shape
         self.image = self.dataset.image
         self.coords = self.dataset.coords
+        self.undersampling = undersampling
     
     def __len__(self):
         return self.len
@@ -560,12 +564,12 @@ class MRICoilWrapperDataset(Dataset):
         coords = self.coords[idx].reshape(-1,self.coord_size)
         if type(self.dataset) is MRIDatasetWithDistances:
             dists = self.dataset.dist_to_center[idx].reshape(-1,1)
-            if self.dataset.undersampling != None:
-                mask = self.dataset.mask
+            if self.undersampling != None:
+                mask = self.dataset.coords_mask[idx].reshape(-1,1)
                 return coords, img, mask, dists
             return coords, img, dists, list()
         elif type(self.dataset) is MRIDatasetUndersampling:
-            mask = self.dataset.mask
+            mask = self.dataset.coords_mask[idx].reshape(-1,1)
             return coords, img, mask, list()
         else:
             return coords, img, list(), list()

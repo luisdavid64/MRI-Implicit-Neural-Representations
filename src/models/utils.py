@@ -54,9 +54,14 @@ def collate_inr(batch):
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
                     num_workers=0, sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False,
-                    normalization="max", use_dists="no", undersampling=None, per_coil=True):
+                    normalization="max", use_dists="no", undersampling=None, per_coil=False):
     # Safety check
     assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
+
+    # TODO: Set for larger batch size
+    val_batch_size = batch_size
+    if per_coil:
+        batch_size = 1
 
     if undersampling == None:
         # we do not have undersampling therefore normal operation
@@ -71,7 +76,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                               normalization=normalization, undersampling=None)
 
         if per_coil:
-            dataset = MRICoilWrapperDataset(dataset=dataset)
+            dataset = MRICoilWrapperDataset(dataset=dataset,undersampling=undersampling)
 
         # Create validation and traning laoders
         loader = DataLoader(dataset=dataset,
@@ -81,7 +86,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                             num_workers=num_workers)
 
         val_loader = DataLoader(dataset=dataset,
-                                batch_size=batch_size,
+                                batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
@@ -110,7 +115,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                               normalization=normalization, undersampling=None)
 
         if per_coil:
-            dataset = MRICoilWrapperDataset(dataset=dataset_undersampled)
+            dataset_undersampled = MRICoilWrapperDataset(dataset=dataset_undersampled, undersampling=undersampling)
 
         loader = DataLoader(dataset=dataset_undersampled,
                             batch_size=batch_size,
@@ -119,7 +124,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                             num_workers=num_workers)
 
         val_loader = DataLoader(dataset=dataset,
-                                batch_size=batch_size,
+                                batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
