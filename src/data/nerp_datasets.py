@@ -548,28 +548,33 @@ class MRICoilWrapperDataset(Dataset):
         self.dataset = dataset
         self.coord_size = coord_size
         # Set the length equal to #coils
+        C,H,W,S = self.dataset.shape
         self.len = self.dataset.shape[0]
         self.img_shape = self.dataset.img_shape
         self.file = self.dataset.file
         self.shape = self.dataset.shape
-        self.image = self.dataset.image
-        self.coords = self.dataset.coords
+        self.image = self.dataset.image.reshape((C,H,W,S))
+        self.coords = self.dataset.coords.reshape((C,H,W,self.coord_size))
+        if hasattr(self.dataset, 'dist_to_center'):
+            self.dist_to_center = self.dataset.dist_to_center.reshape((C,H,W,1))
+        if hasattr(self.dataset, 'coords_mask'):
+            self.coords_mask = self.dataset.coords_mask.reshape((C,H,W,self.coord_size))
         self.undersampling = undersampling
     
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
-        img = self.image[idx].reshape(-1, 1)
+        img = self.image[idx].reshape(-1, 2)
         coords = self.coords[idx].reshape(-1,self.coord_size)
         if type(self.dataset) is MRIDatasetWithDistances:
-            dists = self.dataset.dist_to_center[idx].reshape(-1,1)
+            dists = self.dist_to_center[idx].reshape(-1,1)
             if self.undersampling != None:
-                mask = self.dataset.coords_mask[idx].reshape(-1,1)
+                mask = self.coords_mask[idx].reshape(-1,self.coord_size)
                 return coords, img, dists, mask
             return coords, img, dists, list()
         elif type(self.dataset) is MRIDatasetUndersampling:
-            mask = self.dataset.coords_mask[idx].reshape(-1,1)
+            mask = self.coords_mask[idx].reshape(-1,self.coord_size)
             return coords, img, list(), mask
         else:
             return coords, img, list(), list()
