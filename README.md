@@ -99,9 +99,11 @@ Note: In order to use line sampling, we have not implemented seperate implementa
 For Column sampling use grid-n*1  where n is the accelartion in column axsis
 For Row sampling use grid-1*n     where n is the accelartion in row axsis
 
-## Special Batching:
+## Special Batching For Undersampling:
 
-To set the dataloader to load batches per coil, please set the parameter `per_coil: True` in the config file
+To set the dataloader to load batches per coil, please set the parameter `per_coil: True` in the config file.
+
+If per coil batching is used, one can also set `use_tv` to calculate the total variation loss on the coil to smoothen output.
 
 # References 
 
