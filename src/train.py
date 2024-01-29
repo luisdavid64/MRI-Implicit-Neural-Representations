@@ -13,7 +13,7 @@ from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, \
     stats_per_coil, get_multiple_slices_dataloader
-from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss
+from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss, tv_loss
 from models.regularization import Regularization_L1, Regularization_L2
 from log_handler.logger import INRLogger
 
@@ -184,10 +184,6 @@ def training_script(config, dataset, data_loader, val_loader, slice_no):
             kcoords = torch.clone(coords)
             coords = coords.to(device=device)  # [bs, 3]
             gt = gt.to(device=device)  # [bs, 2], [0, 1]
-            if len(mask_coords) != 0:
-                mask_coords.to(device=device)
-                coords = coords[mask_coords[:,0]]
-                gt = gt[mask_coords[:,0]]
             coords = encoder.embedding(coords) # [bs, 2*embedding size]
 
             train_output = None
@@ -197,10 +193,17 @@ def training_script(config, dataset, data_loader, val_loader, slice_no):
                 train_output = model(coords)  # [bs, 2]
             optim.zero_grad()
             train_loss = 0
+            if len(mask_coords) != 0:
+                if config["use_tv"]:
+                    train_loss += tv_loss(train_output.view((H,W,2)))
+                mask_coords.to(device=device)
+                train_output = train_output[mask_coords[:,0]]
+                gt = gt[mask_coords[:,0]]
             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
-                train_loss, _ = loss_fn(train_output, gt, kcoords.to(device))
+                loss, _ = loss_fn(train_output, gt, kcoords.to(device))
+                train_loss += loss
             else:
-                train_loss = 0.5 * loss_fn(train_output, gt)
+                train_loss += 0.5 * loss_fn(train_output, gt)
 
             # Regularization check
             if regularization:
@@ -222,7 +225,7 @@ def training_script(config, dataset, data_loader, val_loader, slice_no):
             test_running_loss = 0
             im_recon = torch.zeros(((C*H*W),S)).to(device)
             with torch.no_grad():
-                for it, (coords, gt, mask_coords, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     kcoords = torch.clone(coords)
                     coords = coords.to(device=device)  # [bs, 3]
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]
@@ -284,6 +287,8 @@ if __name__ == "__main__":
     # Set to normal per-point mode if coil batching not present
     if "per_coil" not in config:
         config["per_coil"] = False
+    if "use_tv" not in config:
+        config["use_tv"] = False
     data_samples = get_config(opts.data_samples)
     # Setup data loader
     # The only difference of val loader is that data is not shuffled
@@ -302,7 +307,8 @@ if __name__ == "__main__":
             full_norm=config["full_norm"],
             normalization=config["normalization"],
             undersampling=config["undersampling"],
-            use_dists="no"
+            use_dists="no",
+            per_coil=config["per_coil"]
         )
 
         training_script(config=config, dataset=dataset, data_loader=data_loader,
@@ -327,7 +333,8 @@ if __name__ == "__main__":
                 full_norm=config["full_norm"],
                 normalization=config["normalization"],
                 undersampling=config["undersampling"],
-                use_dists="no"
+                use_dists="no",
+                per_coil=config["per_coil"]
             )
 
             for dataset, data_loader, val_loader, _slice in zip(datasets, data_loaders, val_loaders, slices):

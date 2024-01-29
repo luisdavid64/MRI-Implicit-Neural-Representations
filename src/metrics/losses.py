@@ -301,5 +301,21 @@ class ConsistencyLoss(torch.nn.Module):
                 # We detach first tensor as we want effect only on subsequent layers
                 loss += torch.nn.functional.mse_loss(input[i][ind].detach(), input[i+1][ind])
         return loss
+
+def tv_loss(img):
+    """
+    Compute total variation loss.
+
+    Inputs:
+    - img: PyTorch Variable of shape (H, W,2) holding an input coil.
+
+    Returns:
+    - loss: PyTorch Variable holding a scalar giving the total variation loss
+      for img weighted by tv_weight.
+    """
+    w_variance = torch.sum(torch.pow(img[:,:-1,:] - img[:,1:,:], 2))
+    h_variance = torch.sum(torch.pow(img[:-1,:,:] - img[1:,:,:], 2))
+    loss = 0.5*(h_variance + w_variance)
+    return loss
             
             
