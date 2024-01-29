@@ -302,7 +302,7 @@ class ConsistencyLoss(torch.nn.Module):
                 loss += torch.nn.functional.mse_loss(input[i][ind].detach(), input[i+1][ind])
         return loss
 
-def tv_loss(img, weight=0.5):
+def tv_loss(img, weight=0.0001):
     """
     Compute total variation loss.
 
