@@ -573,7 +573,3 @@ class MRICoilWrapperDataset(Dataset):
             return coords, img, list(), mask
         else:
             return coords, img, list(), list()
-
-
-if __name__ == "__main__":
-    x = MRICoilWrapperDataset(transform=False)
