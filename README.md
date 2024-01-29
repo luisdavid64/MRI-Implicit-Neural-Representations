@@ -32,7 +32,7 @@ To train a multiscale network on k-space data, run the following command:
 python src/train_kspace_multiscale.py --config path/to/config
 ```
 
-Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml)
+Our Multi-Scale Network is based on a light-weight pre-processing step that clusters the available k-space data. Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml)
 
 # Config Parameters
 
