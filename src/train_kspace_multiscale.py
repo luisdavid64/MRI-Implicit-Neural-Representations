@@ -214,7 +214,7 @@ def training_multiscale(config, dataset, data_loader, val_loader, slice_no):
                     train_loss += loss / mx[idx]
                 else:
                     # train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx])) / mx[idx]
-                    train_loss = 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]))
+                    train_loss += 0.5 * loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]))
 
             train_loss.backward()
             optim.step()
