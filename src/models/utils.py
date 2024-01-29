@@ -23,6 +23,8 @@ def get_device(net_name):
 
 
 def get_config(config):
+    if not config:
+        return None
     if config.endswith(".json"):
         with open(config, 'r') as jf:
             return json.load(jf)
@@ -175,7 +177,7 @@ def get_multiple_slices_dataloader(data, data_root, set, batch_size, transform=T
         loaders.append(dl)
         val_loaders.append(vl)
 
-    return datasets, loaders, val_loaders, slices
+    return datasets, loaders, val_loaders #slices
 
 
 def save_image_3d(tensor, slice_idx, file_name):
