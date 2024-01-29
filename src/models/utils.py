@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.utils as vutils
 from tabulate import tabulate
-from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances
+from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances, MRICoilWrapperDataset
 from skimage.metrics import structural_similarity
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,15 +43,27 @@ def prepare_sub_folder(output_directory):
         os.makedirs(checkpoint_directory)
     return checkpoint_directory, image_directory
 
+# This collate function keeps the dimension as (Batch, No Points)
+def collate_inr(batch):
+    batch = torch.utils.data._utils.collate.default_collate(batch)
+    for i in range(len(batch)):
+        if isinstance(batch[i], torch.Tensor):
+            if len(batch[i].shape) > 2:
+                batch[i] = torch.squeeze(batch[i], dim=0)
+    return batch
+
+
 
 def get_data_loader(data, data_root, set, batch_size, transform=True,
                     num_workers=0, sample=0, slice=0, challenge="multicoil", shuffle=True, full_norm=False,
-                    normalization="max", use_dists="no", undersampling=None):
+                    normalization="max", use_dists="no", undersampling=None, per_coil=False):
     # Safety check
     assert data in ['brain', 'knee'], "Unsupported parameter is provided in the get_data_loader() function"
 
-    # Firstly if we are going to use undersampling we need to make sure that our validation loader should have normal version
-    # let's firstly check if we are going to have undersampling or not
+    # TODO: Set for larger batch size
+    val_batch_size = batch_size
+    if per_coil:
+        batch_size = 1
 
     if undersampling == None:
         # we do not have undersampling therefore normal operation
@@ -65,23 +77,29 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                               sample=sample, slice=slice, full_norm=full_norm,
                                               normalization=normalization, undersampling=None)
 
+        if per_coil:
+            dataset = MRICoilWrapperDataset(dataset=dataset,undersampling=undersampling)
+
         # Create validation and traning laoders
         loader = DataLoader(dataset=dataset,
                             batch_size=batch_size,
                             shuffle=False,
                             drop_last=False,
-                            num_workers=num_workers)
+                            num_workers=num_workers,
+                            collate_fn=collate_inr
+                            )
 
         val_loader = DataLoader(dataset=dataset,
-                                batch_size=batch_size,
+                                batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
-                                pin_memory=True
+                                pin_memory=True,
+                                collate_fn=collate_inr
                                 )
 
     else:
-        # if we have undersampling, we need to have sepeare data set
+        # if we have undersampling, we need to separate data
         if use_dists == "yes" or use_dists == True:
             # then get normal data set and undersampled dataset
             dataset_undersampled = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set,
@@ -97,25 +115,29 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                                            transform=transform, sample=sample, slice=slice,
                                                            full_norm=full_norm, normalization=normalization,
                                                            undersampling=undersampling)
-            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform,
+            dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform,
                                               sample=sample, slice=slice, full_norm=full_norm,
-                                              normalization=normalization, undersampling=None)
+                                              normalization=normalization)
 
-        # Create loader, note that we are using undersampled dataset in the traning loader
+        if per_coil:
+            dataset_undersampled = MRICoilWrapperDataset(dataset=dataset_undersampled, undersampling=undersampling)
+
         loader = DataLoader(dataset=dataset_undersampled,
                             batch_size=batch_size,
                             shuffle=False,
                             drop_last=False,
-                            num_workers=num_workers)
+                            num_workers=num_workers,
+                            collate_fn=collate_inr
+                            )
 
         val_loader = DataLoader(dataset=dataset,
-                                batch_size=batch_size,
+                                batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
-                                pin_memory=True
+                                pin_memory=True,
+                                collate_fn=collate_inr
                                 )
-    # return normal not undersampled data set, then undersampled loader if, and normal validation loader
     return dataset, loader, val_loader
 
 

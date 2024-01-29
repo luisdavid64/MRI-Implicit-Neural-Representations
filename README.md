@@ -38,6 +38,7 @@ To train a multiscale network on k-space data, run the following command:
 python src/train_kspace_multiscale.py --config path/to/config
 ```
 
+Our Multi-Scale Network is based on a light-weight pre-processing step that clusters the available k-space data. Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml)
 To run the experiments with multiple samples use the data samples config files:
 
 ```
@@ -97,6 +98,12 @@ undersampling: grid-2*1
 Note: In order to use line sampling, we have not implemented seperate implementation but it uses our grid sampling code so
 For Column sampling use grid-n*1  where n is the accelartion in column axsis
 For Row sampling use grid-1*n     where n is the accelartion in row axsis
+
+## Special Batching For Undersampling:
+
+To set the dataloader to load batches per coil, please set the parameter `per_coil: True` in the config file.
+
+If per coil batching is used, one can also set `use_tv` to calculate the total variation loss on the coil to smoothen output.
 
 # References 
 

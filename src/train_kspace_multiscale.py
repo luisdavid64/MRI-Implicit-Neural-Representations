@@ -27,7 +27,7 @@ from models.networks import Positional_Encoder
 from models.mfn import MultiscaleBoundedFourier, MultiscaleKFourier
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, \
     stats_per_coil, get_multiple_slices_dataloader
-from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss
+from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss, tv_loss
 from clustering import partition_and_stats
 from log_handler.logger import INRLogger
 
@@ -188,17 +188,25 @@ def training_multiscale(config, dataset, data_loader, val_loader, slice_no):
     for epoch in range(max_epoch):
         model.train()
         running_loss = 0
-        for it, (coords, gt, dist_to_center) in enumerate(data_loader):
+        for it, (coords, gt, dist_to_center, mask_coords) in enumerate(data_loader):
             # Copy coordinates for HDR loss
             coords = coords.to(device=device)  # [bs, 3]
             dist_to_center = dist_to_center.to(device)
-            coords = encoder.embedding(coords)  # [bs, 2*embedding size]
             gt = gt.to(device=device)  # [bs, 2], [0, 1]
+            coords = encoder.embedding(coords) # [bs, 2*embedding size]
             train_output = model(coords=coords, dist_to_center=dist_to_center)  # [bs, 2]
             optim.zero_grad()
             train_loss = 0
+            if config["use_tv"]:
+                mask_coords.to(device=device)
+                train_loss += tv_loss(train_output[-1].view((H,W,2)))
+            if len(mask_coords) != 0:
+                mask_coords.to(device=device)
+                gt = gt[mask_coords[:,0]]
             train_loss += 0.1 * loss_cons(train_output, dist_to_center)
             for idx, out in enumerate(train_output):
+                if len(mask_coords) != 0:
+                    out = out[mask_coords[:,0]]
                 if config["loss"] in ["HDR", "FFL", "tanh"]:
                     # loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt) / mx[idx]
                     loss, _ = loss_fn(out, limit_kspace(gt, dist_to_center, pairs[idx]), gt)
@@ -287,6 +295,13 @@ if __name__ == "__main__":
     # Load experiment setting
     opts = parser.parse_args()
     config = get_config(opts.config)
+
+    # Set to normal per-point mode if coil batching not present
+    if "per_coil" not in config:
+        config["per_coil"] = False
+    if "use_tv" not in config:
+        config["use_tv"] = False
+    
     data_samples = get_config(opts.data_samples)
     # Setup data loader
     # The only difference of val loader is that data is not shuffled
@@ -305,7 +320,8 @@ if __name__ == "__main__":
             full_norm=config["full_norm"],
             normalization=config["normalization"],
             undersampling=config["undersampling"],
-            use_dists="no"
+            use_dists="yes",
+            per_coil=config["per_coil"]
         )
 
         training_multiscale(config=config, dataset=dataset, data_loader=data_loader,
@@ -315,6 +331,7 @@ if __name__ == "__main__":
         samples = data_samples["samples"]
         print("Samples: ", samples)
         for sample, slices in samples.items():
+
 
             datasets, data_loaders, val_loaders = get_multiple_slices_dataloader(
                 data=config['data'],
@@ -330,7 +347,8 @@ if __name__ == "__main__":
                 full_norm=config["full_norm"],
                 normalization=config["normalization"],
                 undersampling=config["undersampling"],
-                use_dists="no"
+                use_dists="yes",
+                per_coil=config["per_coil"]
             )
 
             for dataset, data_loader, val_loader, _slice in zip(datasets, data_loaders, val_loaders, slices):
