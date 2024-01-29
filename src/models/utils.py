@@ -83,14 +83,17 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                             batch_size=batch_size,
                             shuffle=False,
                             drop_last=False,
-                            num_workers=num_workers)
+                            num_workers=num_workers,
+                            collate_fn=collate_inr
+                            )
 
         val_loader = DataLoader(dataset=dataset,
                                 batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
-                                pin_memory=True
+                                pin_memory=True,
+                                collate_fn=collate_inr
                                 )
 
     else:
@@ -121,14 +124,17 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                             batch_size=batch_size,
                             shuffle=False,
                             drop_last=False,
-                            num_workers=num_workers)
+                            num_workers=num_workers,
+                            collate_fn=collate_inr
+                            )
 
         val_loader = DataLoader(dataset=dataset,
                                 batch_size=val_batch_size,
                                 shuffle=False,
                                 drop_last=False,
                                 num_workers=num_workers,
-                                pin_memory=True
+                                pin_memory=True,
+                                collate_fn=collate_inr
                                 )
     return dataset, loader, val_loader
 
