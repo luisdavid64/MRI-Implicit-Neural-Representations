@@ -113,9 +113,9 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
                                                            transform=transform, sample=sample, slice=slice,
                                                            full_norm=full_norm, normalization=normalization,
                                                            undersampling=undersampling)
-            dataset = MRIDatasetUndersampling(data_class=data, data_root=data_root, set=set, transform=transform,
+            dataset = MRIDataset(data_class=data, data_root=data_root, set=set, transform=transform,
                                               sample=sample, slice=slice, full_norm=full_norm,
-                                              normalization=normalization, undersampling=None)
+                                              normalization=normalization)
 
         if per_coil:
             dataset_undersampled = MRICoilWrapperDataset(dataset=dataset_undersampled, undersampling=undersampling)

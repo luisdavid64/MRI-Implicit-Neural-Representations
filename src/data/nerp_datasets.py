@@ -381,7 +381,7 @@ class MRIDataset(Dataset):
         return self.shape
 
     def __getitem__(self, idx):
-        return self.coords[idx], self.image[idx], list(), list()
+        return self.coords[idx], self.image[idx], list()
 
     def __len__(self):
         return len(self.image)  #self.X.shape[0]
