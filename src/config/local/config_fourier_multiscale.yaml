@@ -6,7 +6,7 @@ display_image_num: 8
 
 # Optimization options
 max_epoch: 4000                # Maximum number of training iterations
-batch_size: 1            # Batch size (320x320)
+batch_size: 100000            # Batch size (320x320)
 loss: LSL
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
@@ -43,7 +43,7 @@ encoder:
   coordinates_size: 3 
 
 # Data
-data: knee # or knee
+data: brain # or knee
 data_root: data 
 set: train
 slice: 0
@@ -67,3 +67,5 @@ partition:
 #   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
 #   none              So no undersamping
 undersampling: radial-2
+use_tv: True
+per_coil: True
