@@ -189,8 +189,12 @@ for epoch in range(max_epoch):
         # Copy coordinates for HDR loss
         coords = coords.to(device=device)  # [bs, 3]
         dist_to_center = dist_to_center.to(device)
-        coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
+        if len(mask_coords) != 0:
+            mask_coords.to(device=device)
+            coords = coords[mask_coords[:,0]]
+            gt = gt[mask_coords[:,0]]
+        coords = encoder.embedding(coords) # [bs, 2*embedding size]
         train_output = model(coords=coords, dist_to_center=dist_to_center)  # [bs, 2]
         optim.zero_grad()
         train_loss = 0

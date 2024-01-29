@@ -184,8 +184,12 @@ for epoch in range(max_epoch):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
-        coords = encoder.embedding(coords) # [bs, 2*embedding size]
         gt = gt.to(device=device)  # [bs, 2], [0, 1]
+        if len(mask_coords) != 0:
+            mask_coords.to(device=device)
+            coords = coords[mask_coords[:,0]]
+            gt = gt[mask_coords[:,0]]
+        coords = encoder.embedding(coords) # [bs, 2*embedding size]
         train_output = None
         if config["model"] == "KGabor":
             train_output = model(coords, dist_to_center)  # [bs, 2]
