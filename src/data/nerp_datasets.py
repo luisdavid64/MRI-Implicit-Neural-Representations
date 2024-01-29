@@ -484,7 +484,7 @@ class MRIDatasetUndersampling(MRIDataset):
         # cordinates normal, image, cordinate mask occording to undersampeld or not
     def __getitem__(self, idx):
         
-        return self.coords[idx], self.image[idx], self.coords_mask, list()
+        return self.coords[idx], self.image[idx], list(), self.coords_mask
 
 
 # Some Dataset variations including different data
@@ -566,11 +566,11 @@ class MRICoilWrapperDataset(Dataset):
             dists = self.dataset.dist_to_center[idx].reshape(-1,1)
             if self.undersampling != None:
                 mask = self.dataset.coords_mask[idx].reshape(-1,1)
-                return coords, img, mask, dists
+                return coords, img, dists, mask
             return coords, img, dists, list()
         elif type(self.dataset) is MRIDatasetUndersampling:
             mask = self.dataset.coords_mask[idx].reshape(-1,1)
-            return coords, img, mask, list()
+            return coords, img, list(), mask
         else:
             return coords, img, list(), list()
 

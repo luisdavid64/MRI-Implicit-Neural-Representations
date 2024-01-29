@@ -122,6 +122,10 @@ if "pretrain" in config:
     optim.load_state_dict(checkpoint["opt"])
     encoder.B = checkpoint["enc"]
 
+# Set to normal per-point mode
+if "per_coil" not in config:
+    config["per_coil"] = False
+
 # Setup data loader
 # The only difference of val loader is that data is not shuffled
 dataset, data_loader, val_loader = get_data_loader(
@@ -137,7 +141,8 @@ dataset, data_loader, val_loader = get_data_loader(
     full_norm=config["full_norm"],
     normalization=config["normalization"],
     undersampling= config["undersampling"],
-    use_dists="no"
+    use_dists="no",
+    per_coil=config["per_coil"]
 )
 
 bs = config["batch_size"]
@@ -175,7 +180,7 @@ print('Training for {} epochs'.format(max_epoch))
 for epoch in range(max_epoch):
     model.train()
     running_loss = 0
-    for it, (coords, gt, mask_coords, dist_to_center) in enumerate(data_loader):
+    for it, (coords, gt, dist_to_center, mask_coords) in enumerate(data_loader):
         # Copy coordinates for HDR loss
         kcoords = torch.clone(coords)
         coords = coords.to(device=device)  # [bs, 3]
