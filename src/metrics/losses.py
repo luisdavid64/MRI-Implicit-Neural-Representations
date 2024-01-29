@@ -314,8 +314,10 @@ def tv_loss(img, weight=0.5):
     - loss: PyTorch Variable holding a scalar giving the total variation loss
       for img weighted by tv_weight.
     """
-    w_variance = torch.sum(torch.pow(img[:,:-1,:] - img[:,1:,:], 2))
-    h_variance = torch.sum(torch.pow(img[:-1,:,:] - img[1:,:,:], 2))
+    # w_variance = torch.sum(torch.pow(img[:,:-1,:] - img[:,1:,:], 2))
+    w_variance = torch.nn.functional.l1_loss(img[:,:-1,:] - img[:,1:,:])
+    # h_variance = torch.sum(torch.pow(img[:-1,:,:] - img[1:,:,:], 2))
+    h_variance = torch.nn.functional.l1_loss(img[:-1,:,:] - img[1:,:,:]) 
     loss = weight*(h_variance + w_variance)
     return loss
             
