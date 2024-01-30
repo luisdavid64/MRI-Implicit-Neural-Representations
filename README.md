@@ -38,7 +38,8 @@ To train a multiscale network on k-space data, run the following command:
 python src/train_kspace_multiscale.py --config path/to/config
 ```
 
-Our Multi-Scale Network is based on a light-weight pre-processing step that clusters the available k-space data. Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml)
+Our Multi-Scale Network is based on a light-weight pre-processing step that clusters the available k-space data. Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml).
+
 To run the experiments with multiple samples use the data samples config files:
 
 ```
@@ -71,7 +72,7 @@ Generally, HDR is superior in recovering the K-space periphery if set up correct
 
 Available Normalizations: `["abs_max", "max" "max_std", "coil"]`
 
-Generally, per-coil normalization `"coil"` and normalizing by the absolute max `"abs_max` are good choices.
+Generally, per-coil normalization `"coil"` and normalizing by the absolute max `"max"` are good choices.
 
 ## Clustering
 
@@ -96,14 +97,14 @@ undersampling: grid-2*1
 
 ```
 Note: In order to use line sampling, we have not implemented seperate implementation but it uses our grid sampling code so
-For Column sampling use grid-n*1  where n is the accelartion in column axsis
-For Row sampling use grid-1*n     where n is the accelartion in row axsis
+For Column sampling use grid-n*1  where n is the accelartion in column axis
+For Row sampling use grid-1*n     where n is the accelartion in row axis
 
 ## Special Batching For Undersampling:
 
 To set the dataloader to load batches per coil, please set the parameter `per_coil: True` in the config file.
 
-If per coil batching is used, one can also set `use_tv` to calculate the total variation loss on the coil to smoothen output.
+If per coil batching is used, one can also set `use_tv` to calculate the total variation loss on the coil to enforce spatial smoothness as in [5].
 
 # References 
 
@@ -114,3 +115,5 @@ If per coil batching is used, one can also set `use_tv` to calculate the total v
 [3] Fathony, R., Sahu, A., Willmott, D., & Kolter, J.Z. (2021). Multiplicative Filter Networks. International Conference on Learning Representations.
 
 [4] Lindell, D.B., Veen, D.V., Park, J.J., & Wetzstein, G. (2021). Bacon: Band-limited Coordinate Networks for Multiscale Scene Representation. 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 16231-16241.
+
+[5] Block, K. T., Uecker, M., & Frahm, J. (2007). Undersampled radial MRI with multiple coils. Iterative image reconstruction using a total variation constraint. Magnetic resonance in medicine, 57(6), 1086–1098. https://doi.org/10.1002/mrm.21236
