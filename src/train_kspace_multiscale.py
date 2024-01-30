@@ -30,7 +30,7 @@ from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, 
 from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss, tv_loss
 from clustering import partition_and_stats
 from log_handler.logger import INRLogger
-from src.utils import set_default_configs
+from utils import set_default_configs
 
 
 def limit_kspace(kspace, dist, bounds):

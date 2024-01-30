@@ -16,7 +16,7 @@ from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, 
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss, tv_loss
 from models.regularization import Regularization_L1, Regularization_L2
 from log_handler.logger import INRLogger
-from src.utils import set_default_configs
+from utils import set_default_configs
 
 
 def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
