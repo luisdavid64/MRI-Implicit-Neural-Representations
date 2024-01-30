@@ -65,7 +65,7 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
     if per_coil:
         batch_size = 1
 
-    if undersampling == None:
+    if undersampling == None or undersampling == "none":
         # we do not have undersampling therefore normal operation
         if use_dists == "yes" or use_dists == True:
             dataset = MRIDatasetWithDistances(data_class=data, data_root=data_root, set=set, transform=transform,
