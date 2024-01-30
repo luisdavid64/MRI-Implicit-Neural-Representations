@@ -30,6 +30,7 @@ from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, 
 from metrics.losses import ConsistencyLoss, HDRLoss_FF, LogSpaceLoss, tv_loss
 from clustering import partition_and_stats
 from log_handler.logger import INRLogger
+from src.utils import set_default_configs
 
 
 def limit_kspace(kspace, dist, bounds):
@@ -271,10 +272,7 @@ if __name__ == "__main__":
     config = get_config(opts.config)
 
     # Set to normal per-point mode if coil batching not present
-    if "per_coil" not in config:
-        config["per_coil"] = False
-    if "use_tv" not in config:
-        config["use_tv"] = False
+    config = set_default_configs(config)
     
     data_samples = get_config(opts.data_samples)
 

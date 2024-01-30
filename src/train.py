@@ -16,6 +16,7 @@ from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, 
 from metrics.losses import HDRLoss_FF, TLoss, CenterLoss, FocalFrequencyLoss, TanhL2Loss, MSLELoss, tv_loss
 from models.regularization import Regularization_L1, Regularization_L2
 from log_handler.logger import INRLogger
+from src.utils import set_default_configs
 
 
 def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
@@ -255,11 +256,7 @@ if __name__ == "__main__":
     opts = parser.parse_args()
     config = get_config(opts.config)
     # Set to normal per-point mode if coil batching not present
-    if "per_coil" not in config:
-        config["per_coil"] = False
-    if "use_tv" not in config:
-        config["use_tv"] = False
-    data_samples = get_config(opts.data_samples)
+    config = set_default_configs(config)
 
     # Setup data loader
     # The only difference of val loader is that data is not shuffled
