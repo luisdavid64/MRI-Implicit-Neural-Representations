@@ -92,13 +92,10 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
         NotImplementedError
 
     # Setup Regularization
-    # Check do we have regularization
-    reguluzation_type = config["regularization"]["type"]
-    if reguluzation_type == "none":
-        # if we do not have regularization
+    regularization_type = config["regularization"]["type"]
+    if regularization_type == "none":
         regularization = False
     else:
-        # if we have regularization
         regularization_strength = config["regularization"]["strenght"]
 
         regularization_methods = {
@@ -110,7 +107,6 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
 
     if regularization:
         print(f"Regularization is being used {type(regularization)}")
-    # End of Regularization setup
 
     if "pretrain" in config:
         checkpoint = torch.load(config["pretrain"], map_location=torch.device(device=device))
