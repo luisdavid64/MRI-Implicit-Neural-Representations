@@ -124,7 +124,7 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
 
 
     # Reconstruct image from val # we need to make sure here
-    for it, (coords, gt, _) in enumerate(val_loader):
+    for it, (coords, gt, _, _) in enumerate(val_loader):
         train_image[it*bs:(it+1)*bs, :] = gt.to(device)
 
     train_image = train_image.reshape(C,H,W,S).cpu()
@@ -196,7 +196,7 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
             test_running_loss = 0
             im_recon = torch.zeros(((C*H*W),S)).to(device)
             with torch.no_grad():
-                for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, dist_to_center, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     kcoords = torch.clone(coords)
                     coords = coords.to(device=device)  # [bs, 3]
                     coords = encoder.embedding(coords) # [bs, 2*embedding size]

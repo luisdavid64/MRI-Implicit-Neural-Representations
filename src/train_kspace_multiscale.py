@@ -138,7 +138,7 @@ def training_multiscale(config, dataset, data_loader, val_loader, sample, slice_
 
     train_image = torch.zeros(((C * H * W), S)).to(device)
     # Reconstruct image from val
-    for it, (coords, gt, dist) in enumerate(val_loader):
+    for it, (coords, gt, dist, _) in enumerate(val_loader):
         train_image[it * bs:(it + 1) * bs, :] = gt.to(device)
     train_image = train_image.reshape(C, H, W, S).cpu()
     k_space = torch.clone(train_image)
@@ -206,7 +206,7 @@ def training_multiscale(config, dataset, data_loader, val_loader, sample, slice_
             test_running_loss = 0
             im_recon = torch.zeros(((C * H * W), S)).to(device)
             with torch.no_grad():
-                for it, (coords, gt, dist_to_center) in tqdm(enumerate(val_loader), total=len(val_loader)):
+                for it, (coords, gt, dist_to_center, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
                     coords = coords.to(device=device)  # [bs, 3]
                     dist_to_center = dist_to_center.to(device)
                     coords = encoder.embedding(coords)  # [bs, 2*embedding size]
