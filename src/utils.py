@@ -9,6 +9,6 @@ def set_default_configs(config):
         config["regularization"] = dict()
         config["regularization"]["type"] = "none" 
     if "undersampling" not in config:
-        config["undersampling"] = "none"
+        config["undersampling"] = None
 
     return config
