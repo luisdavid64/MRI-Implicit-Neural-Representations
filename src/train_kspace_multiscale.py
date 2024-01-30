@@ -32,14 +32,6 @@ from clustering import partition_and_stats
 from log_handler.logger import INRLogger
 
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
-# parser.add_argument('--output_path', type=str, default='.', help="outputs path")
-# Load experiment setting
-# opts = parser.parse_args()
-# config = get_config(opts.config)
-
-
 def limit_kspace(kspace, dist, bounds):
     ind = torch.where((dist < bounds[0])
                       | (dist > bounds[1]))
@@ -56,7 +48,7 @@ def create_pairs(values, multiplication_factor):
     return repeated_pairs
 
 
-def training_multiscale(config, dataset, data_loader, val_loader, slice_no):
+def training_multiscale(config, dataset, data_loader, val_loader, sample, slice_no):
     max_epoch = config['max_epoch']
     in_image_space = config["transform"]
     device = get_device(config["model"])
@@ -65,8 +57,8 @@ def training_multiscale(config, dataset, data_loader, val_loader, slice_no):
 
     # Setup output folder
     output_folder = os.path.splitext(os.path.basename(opts.config))[0]
-    model_name = os.path.join(output_folder, config['data'] + '/img_slice_{}_{}_{}_{}_{}_{}_lr{:.2g}_encoder_{}' \
-                              .format(slice_no, config['model'], \
+    model_name = os.path.join(output_folder, config['data'] + '/img_sample{}_slice{}_{}_{}_{}_{}_{}_lr{:.2g}_encoder_{}' \
+                              .format(sample, slice_no, config['model'], \
                                       config['net']['network_input_size'], config['net']['network_width'], \
                                       config['net']['network_depth'], config['loss'], config['lr'],
                                       config['encoder']['embedding']))
@@ -78,24 +70,6 @@ def training_multiscale(config, dataset, data_loader, val_loader, slice_no):
     output_directory = os.path.join(opts.output_path + "/outputs", model_name)
     checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
     shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml'))  # copy config file to output folder
-
-    # Setup data loader
-    # The only difference of val loader is that data is not shuffled
-    # dataset, data_loader, val_loader = get_data_loader(
-    #     data=config['data'],
-    #     data_root=config['data_root'],
-    #     set=config['set'],
-    #     batch_size=config['batch_size'],
-    #     transform=config['transform'],
-    #     num_workers=0,
-    #     sample=config["sample"],
-    #     slice=config["slice"],
-    #     shuffle=True,
-    #     full_norm=config["full_norm"],
-    #     normalization=config["normalization"],
-    #     undersampling= config["undersampling"],
-    #     use_dists="yes"
-    # )
 
     part_config = config["partition"]
     mx, part_radii = partition_and_stats(
@@ -303,6 +277,7 @@ if __name__ == "__main__":
         config["use_tv"] = False
     
     data_samples = get_config(opts.data_samples)
+
     # Setup data loader
     # The only difference of val loader is that data is not shuffled
 
@@ -325,7 +300,7 @@ if __name__ == "__main__":
         )
 
         training_multiscale(config=config, dataset=dataset, data_loader=data_loader,
-                            val_loader=val_loader, slice_no=config["slice"])
+                            val_loader=val_loader, sample=config["sample"], slice_no=config["slice"])
 
     else:
         samples = data_samples["samples"]
@@ -353,6 +328,6 @@ if __name__ == "__main__":
 
             for dataset, data_loader, val_loader, _slice in zip(datasets, data_loaders, val_loaders, slices):
                 training_multiscale(config=config, dataset=dataset, data_loader=data_loader,
-                                    val_loader=val_loader, slice_no=_slice)
+                                    val_loader=val_loader, sample=sample, slice_no=_slice)
 
             del datasets, data_loaders, val_loaders

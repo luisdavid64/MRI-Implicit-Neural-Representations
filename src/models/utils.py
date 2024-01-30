@@ -143,7 +143,8 @@ def get_data_loader(data, data_root, set, batch_size, transform=True,
 
 def get_multiple_slices_dataloader(data, data_root, set, batch_size, transform=True,
                                    num_workers=0, sample=0, all_slices=False, challenge="multicoil", shuffle=True,
-                                   full_norm=False, normalization="max", use_dists="no", undersampling=None, slices=None):
+                                   full_norm=False, normalization="max", use_dists="no", undersampling=None, slices=None,
+                                   per_coil=False):
 
     assert all_slices or slices, "No SLICES found, either mark all_slices=True or " \
                                                 "pass a list of slices as 'slices=[0, 2, 4]' parameter"
@@ -172,7 +173,8 @@ def get_multiple_slices_dataloader(data, data_root, set, batch_size, transform=T
         ds, dl, vl = get_data_loader(data=data, data_root=data_root, set=set, batch_size=batch_size,
                                      transform=transform, num_workers=num_workers, sample=sample, slice=_slice,
                                      challenge=challenge, shuffle=shuffle, full_norm=full_norm,
-                                     normalization=normalization, use_dists=use_dists, undersampling=undersampling)
+                                     normalization=normalization, use_dists=use_dists, undersampling=undersampling,
+                                     per_coil=per_coil)
         datasets.append(ds)
         loaders.append(dl)
         val_loaders.append(vl)

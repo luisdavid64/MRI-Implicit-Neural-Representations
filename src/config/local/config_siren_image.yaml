@@ -45,11 +45,6 @@ sample: 0
 transform: True      # Set to false for k-space
 full_norm: True       # If normalize fully to [0,1]
 normalization: none
-all_slices: False
-slices:
-  - 0
-  - 2
-  - 4
 
 # Undersamping paramters
 # Supported formats:

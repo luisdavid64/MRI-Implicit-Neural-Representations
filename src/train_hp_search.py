@@ -16,16 +16,6 @@ from models.networks import Positional_Encoder, WIRE, FFN, SIREN
 from models.wire2d import WIRE2D
 from parameter_search.find_best_config import grid_search, random_search
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
-parser.add_argument('--hp_config', type=str, default='src/hp_config/config_image.json',
-                    help='Path to the HP config file.')
-parser.add_argument('--output_path', type=str, default='.', help="outputs path")
-# Load experiment setting
-opts = parser.parse_args()
-config = get_config(opts.config)
-hp_config = get_config(opts.hp_config)
-
 
 def training_function(model_configs, model_name, max_epoch, image_directory, device, image=None, data_loader=None,
                       val_loader=None, image_shape=None):
@@ -58,7 +48,8 @@ def training_function(model_configs, model_name, max_epoch, image_directory, dev
         train_image[it * bs:(it + 1) * bs, :] = gt.to(device)
     train_image = train_image.reshape(C, H, W, S).cpu()
     k_space = torch.clone(train_image)
-    if not in_image_space and not os.path.exists(os.path.join(image_directory, 'train_kspace.png')):  # If in k-space apply inverse fourier trans
+    if not in_image_space and not os.path.exists(
+            os.path.join(image_directory, 'train_kspace.png')):  # If in k-space apply inverse fourier trans
         save_im(train_image, image_directory, "train_kspace.png", is_kspace=True)
         train_image = fastmri.ifft2c(train_image)
     train_image = fastmri.complex_abs(train_image)
@@ -70,7 +61,6 @@ def training_function(model_configs, model_name, max_epoch, image_directory, dev
 
     # torchvision.utils.save_image(normalize_image(torch.abs(train_image),True), os.path.join(image_directory, "train.png"))
     del train_image
-
 
     # Setup input encoder:
     encoder = Positional_Encoder(model_configs['encoder'], device=device)
@@ -170,7 +160,8 @@ def training_function(model_configs, model_name, max_epoch, image_directory, dev
             im_recon = im_recon.reshape(C, H, W, S).detach().cpu()
             if not in_image_space:
                 save_im(im_recon.squeeze(), image_directory,
-                        "config_{}_recon_kspace_{}dB.png".format(model_configs["config_index"], epoch + 1), is_kspace=True)
+                        "config_{}_recon_kspace_{}dB.png".format(model_configs["config_index"], epoch + 1),
+                        is_kspace=True)
                 # Plot relative error
                 save_im(((im_recon.squeeze() - k_space)), image_directory,
                         "recon_kspace_{}_error.png".format(epoch + 1), is_kspace=True)
@@ -187,8 +178,9 @@ def training_function(model_configs, model_name, max_epoch, image_directory, dev
                 best_ssim = test_ssim
                 best_ssim_ep = epoch
             # torchvision.utils.save_image(normalize_image(im_recon.squeeze(), True), os.path.join(image_directory, "recon_{}_{:.4g}dB.png".format(epoch + 1, test_psnr)))
-            save_im(im_recon.squeeze(), image_directory, "config_{}_recon_{}_{:.4g}.png".format(model_configs["config_index"],
-                                                                                                epoch + 1, test_psnr))
+            save_im(im_recon.squeeze(), image_directory,
+                    "config_{}_recon_{}_{:.4g}.png".format(model_configs["config_index"],
+                                                           epoch + 1, test_psnr))
             # train_writer.add_scalar('test_loss', test_running_loss / len(data_loader))
             # train_writer.add_scalar('test_psnr', test_psnr)
             # train_writer.add_scalar('test_ssim', test_ssim)
@@ -232,8 +224,6 @@ def run(config, hp_config):
     checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
     shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml'))  # copy config file to output folder
 
-
-
     ## adding useful additional_data to configs, which are popped before running the best configs.
     config["image_directory"] = image_directory
     config["output_directory"] = output_directory
@@ -247,7 +237,8 @@ def run(config, hp_config):
 
     else:
         print("** Running Random Search **")
-        best_configs = random_search(train_function=training_function, model_configs=config, model_class=config["model"],
+        best_configs = random_search(train_function=training_function, model_configs=config,
+                                     model_class=config["model"],
                                      num_search=hp_config.pop("num_search"), epochs=hp_config.pop("max_epoch"),
                                      random_search_spaces=hp_config.pop("search_space"), device=device)
 
@@ -262,4 +253,16 @@ def run(config, hp_config):
             tf.write("{} -> {}\n".format(item[0], item[1]))
 
 
-run(config=config, hp_config=hp_config)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, default='src/config/config_image.yaml', help='Path to the config file.')
+    parser.add_argument('--hp_config', type=str, default='src/hp_config/config_image.json',
+                        help='Path to the HP config file.')
+    parser.add_argument('--output_path', type=str, default='.', help="outputs path")
+    # Load experiment setting
+    opts = parser.parse_args()
+    config = get_config(opts.config)
+    hp_config = get_config(opts.hp_config)
+
+    # Running the hyperparameter search algorithm
+    run(config=config, hp_config=hp_config)
