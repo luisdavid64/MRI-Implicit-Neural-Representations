@@ -233,7 +233,7 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
             if test_ssim > best_ssim:
                 best_ssim = test_ssim
                 best_ssim_ep = epoch
-            save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}.png".format(epoch + 1, test_psnr))
+            save_im(im_recon.squeeze(), image_directory, "recon_{}_{:.4g}_psnr_{:.4g}_ssim.png".format(epoch + 1, test_psnr, test_ssim))
             train_writer.log_test(running_loss/ len(data_loader), test_psnr, test_ssim, epoch+1)
             # Must transfer to .cpu() tensor firstly for saving images
             print("[Validation Epoch: {}/{}] Test loss: {:.4g} | Test psnr: {:.4g} | Test ssim: {:.4g} \n Best psnr: {:.4g} @ epoch {} | Best ssim: {:.4g} @ epoch {}"
