@@ -257,6 +257,8 @@ if __name__ == "__main__":
     config = get_config(opts.config)
     # Set to normal per-point mode if coil batching not present
     config = set_default_configs(config)
+    
+    data_samples = get_config(opts.data_samples)
 
     # Setup data loader
     # The only difference of val loader is that data is not shuffled
