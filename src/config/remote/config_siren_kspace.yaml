@@ -1,13 +1,13 @@
 # Logger options
 log_iter: 20                 # How often to log the training loss
 val_epoch: 20               # How often to validate testing and save output images during training
-image_save_epoch: 1000        # How often do you want to save output images during training
+image_save_epoch: 500        # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
-max_epoch: 2000                # Maximum number of training iterations
-batch_size: 30000            # Batch size (320x320)
-loss: tanh
+max_epoch: 1000                # Maximum number of training iterations
+batch_size: 100000 # 30000            # Batch size (320x320)
+loss:  L2 # tanh
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
 beta1: 0.9                    # Adam parameter
