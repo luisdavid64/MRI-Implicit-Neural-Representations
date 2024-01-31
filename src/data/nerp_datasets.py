@@ -523,10 +523,10 @@ class MRIDatasetWithDistances(MRIDatasetUndersampling):
 
     def __getitem__(self, idx):
         if self.cat_coil:
-            return self.coords[idx], self.image[idx], self.coords[idx,[0,-1]]
+            return self.coords[idx], self.image[idx], self.coords[idx,[0,-1]], list()
             # return self.coords[idx,[1,2]], self.image[idx], self.coords[idx,[0,-1]]
         else: 
-            return self.coords[idx], self.image[idx], self.dist_to_center[idx]
+            return self.coords[idx], self.image[idx], self.dist_to_center[idx], list()
 
 class MRICoilWrapperDataset(Dataset):
     """
