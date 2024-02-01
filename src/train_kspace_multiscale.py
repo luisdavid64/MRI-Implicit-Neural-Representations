@@ -138,7 +138,7 @@ def training_multiscale(config, dataset, data_loader, val_loader, sample, slice_
 
     train_image = torch.zeros(((C * H * W), S)).to(device)
     # Reconstruct image from val
-    for it, (coords, gt, dist, _) in enumerate(val_loader):
+    for it, (coords, gt, _, _) in enumerate(val_loader):
         train_image[it * bs:(it + 1) * bs, :] = gt.to(device)
     train_image = train_image.reshape(C, H, W, S).cpu()
     k_space = torch.clone(train_image)

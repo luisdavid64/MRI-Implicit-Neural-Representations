@@ -72,18 +72,22 @@ class Undersampler():
         
     # GRID BASED UNDERSAMPLING
     # It is grid based undersampling not to confuse with grid construction
-    def create_mask_for_grid_based_undersampling(self, image_h:int, image_w: int, grid_x: int = 3, grid_y: int = 3):
+    def create_mask_for_grid_based_undersampling(self, image_h:int, image_w: int, grid_x: int = 3, grid_y: int = 3, save_mask : bool = True):
         mask = torch.zeros((image_h, image_w ), dtype=torch.bool) 
 
         # Apply the grid sampling mask
         mask[::grid_x, ::grid_y] = True
+        if save_mask:
+            plt.imshow(mask,cmap='gray')
+            plt.savefig("undersampling_mask.png")
+        print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
 
         # Set mask 
         self.__mask_image = mask
 
 
     # RANDOM LINE BASED UNDERSAMPLING
-    def create_mask_for_random_line_based_undersampling(self, image_h:int, image_w: int, p: float):
+    def create_mask_for_random_line_based_undersampling(self, image_h:int, image_w: int, p: float, save_mask : bool =True):
         mask = torch.zeros((image_h, image_w ), dtype=torch.bool) 
 
         mask_x = torch.rand(image_h) <= p
@@ -92,6 +96,10 @@ class Undersampler():
         # Setting odd rows then collumns for the mask
         mask[mask_x,:] = True
         mask[:,mask_y] = True
+        if save_mask:
+            plt.imshow(mask,cmap='gray')
+            plt.savefig("undersampling_mask.png")
+        print("Estimated Acceleration Factor: " + verify_acc_factor(mask))
 
         # Set mask 
         self.__mask_image = mask
