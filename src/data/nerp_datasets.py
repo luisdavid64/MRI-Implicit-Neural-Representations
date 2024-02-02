@@ -11,6 +11,9 @@ from typing import Tuple
 from .utils import *
 
 class MRIDataset(Dataset):
+    """
+        Dataset for INR from a fastmri sample.
+    """
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",
@@ -225,6 +228,9 @@ class MRIDataset(Dataset):
         return len(self.image)  #self.X.shape[0]
 
 class MRIDatasetUndersampling(MRIDataset):
+    """
+        This Dataset enhances MRIDataset with undersampling
+    """
     def __init__(self, data_class='brain', data_root="data", challenge='multicoil', set="train", transform=True, sample=0, slice=0, full_norm=False, custom_file_or_path=None, per_coil_stats=True, centercrop=True, normalization="max", undersampling=None):
         # Initialize undersampling attributes
         self.undersampling_argument, self.undersampling_params = self.parse_undersampling_argument(undersampling)
@@ -322,6 +328,10 @@ class MRIDatasetUndersampling(MRIDataset):
 # Some Dataset variations including different data
 
 class MRIDatasetWithDistances(MRIDatasetUndersampling):
+    """
+        This Dataset enhances MRIDataset with distance from origin information 
+        at each coordinate point 
+    """
     def __init__(self, 
                  data_class='brain', 
                  data_root="data",

@@ -2,10 +2,9 @@
 
 Multi-scale KSpace training based on distance from origin
 
-This Training script uses the MultiscaleBoundedFourier class,
-which is based on BACON and uses a similar notion. However,
-Instead of limiting the frequency of the sinusoids, we aim to
-limit the intensities that are represented at each output stage.
+This Training script uses the MultiscaleFourier class,
+which is based on BACON and uses a similar notion. In a similar way,
+we aim at limiting the information learned at each stage of the network.
 
 We use k-means clustering to produce rings to focus at each 
 stage. Since k-space data tends to cluster high intensity points in the center
