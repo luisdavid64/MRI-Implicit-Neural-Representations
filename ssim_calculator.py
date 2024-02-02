@@ -1,3 +1,9 @@
+"""
+
+Calculate SSIM of two files
+
+"""
+import argparse
 import cv2 as cv
 from skimage.metrics import structural_similarity
 import numpy as np
@@ -11,16 +17,20 @@ def ssim(x, xhat):
     data_range = np.maximum(x.max(), xhat.max()) - np.minimum(x.min(), xhat.min())
     return structural_similarity(x,xhat, data_range=data_range)
 
-# Calculate SSIM
-first = cv.imread("outputs/config_fourier_multiscale/brain/img_Fourier_512_512_8_LSL_lr0.0003_encoder_gauss_scale4_size2562024-01-07_20-31-37/images/train.png")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('gt', type=str, help='Path to gt file.')
+    parser.add_argument('pred', type=str, help="Path to pred")
+    args = parser.parse_args()
+    # Calculate SSIM
+    first = cv.imread(args.gt)
 
-#second = cv.imread("captured.png")
-second = cv.imread("outputs/config_fourier_multiscale/brain/img_Fourier_512_512_8_LSL_lr0.0003_encoder_gauss_scale4_size2562024-01-07_20-31-37/images/recon_250_36.69.png")
+    second = cv.imread(args.pred)
 
-first = cv.resize(first, (2576,1125))
-second = cv.resize(second, (2576,1125))
-first = cv.cvtColor(first, cv.COLOR_BGR2GRAY)
-second = cv.cvtColor(second, cv.COLOR_BGR2GRAY)
-s = ssim(first, second)
+    first = cv.resize(first, (2576,1125))
+    second = cv.resize(second, (2576,1125))
+    first = cv.cvtColor(first, cv.COLOR_BGR2GRAY)
+    second = cv.cvtColor(second, cv.COLOR_BGR2GRAY)
+    s = ssim(first, second)
 
-print(s)
+    print("SSIM: {:.4}".format(s))
