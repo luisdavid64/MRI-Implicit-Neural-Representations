@@ -204,6 +204,15 @@ class KGaborNet(MFNBase):
         return out
 
 class MultiscaleKFourier(MFNBase):
+    """
+
+    Multi-scale Fourier Layer for K-Space data
+
+    This network is a a Multi-scale MFN, inspired by BACON.
+    It is intented to be trained with a shrinking low-pass
+    filter
+
+    """
     def __init__(self,
                  params,
                  weight_scale=1.0,
@@ -283,6 +292,10 @@ class MultiscaleBoundedFourier(MFNBase):
     This network is greatly inspired by BACON and MFNs, but
     with the addition of Bounded Linear Layers and uses
     information about the distance from the origin of each coordinate.
+    
+    The idea of using the bounded linear layers is to enforce the
+    low-pass filter at each level more strictly and send some points to the bias.
+
     """
     def __init__(self,
                  params,

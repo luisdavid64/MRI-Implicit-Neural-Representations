@@ -1,3 +1,10 @@
+"""
+
+This file contains utilities to perform k-means clustering on
+k-space data. The clustering is done based on rings extracted
+from the distance from the center.
+
+"""
 import argparse
 from models.utils import get_config, get_data_loader 
 import fastmri
@@ -10,6 +17,20 @@ import fastmri
 from collections import OrderedDict
 
 def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4):
+    """
+    Partitions the k-space data into N rings
+
+    Args:
+    - dataset: Extract k-space and coord system from an MRIDataset object
+    - img: Used to provide k-space data directly 
+    - kcoords: Used to provide k-space data directly 
+    - show: Show clustering 
+    - no_steps: Number of initial rings
+    - no_parts: Final number of partitions after k-means clustering
+
+    Returns:
+        Tuple: (labels in shape of image, radii separating the partitions)
+    """
     if dataset == None and (img == None or kcoords == None):
         raise ValueError('Dataset or image must be provided')
     if dataset:
@@ -71,6 +92,21 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     return labels, radii
 
 def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
+    """
+    Partitions the k-space data into N rings and return a summary statistic
+
+    Args:
+    - dataset: Extract k-space and coord system from an MRIDataset object
+    - img: Used to provide k-space data directly 
+    - kcoords: Used to provide k-space data directly 
+    - show: Show clustering 
+    - no_steps: Number of initial rings
+    - no_parts: Final number of partitions after k-means clustering
+    - stat: [max,min] summary statistic to return
+
+    Returns:
+        Tuple: (summary statistic per radii, radii separating the partitions)
+    """
     if dataset == None and (img == None or kcoords == None):
         raise ValueError('Dataset or image must be provided')
     if dataset:
@@ -98,28 +134,6 @@ def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_
             stats.append(st)
     return torch.stack(stats), radii
         
-def partition_pseudo_label(dataset = None, img=None, kcoords=None, show = True, no_steps=40, no_parts=4, stat="max"):
-    if dataset == None and (img == None or kcoords == None):
-        raise ValueError('Dataset or image must be provided')
-    if dataset:
-        C,H,W,S = dataset.shape
-        img = dataset.image.reshape(C,H,W,S)
-        kcoords = dataset.coords.reshape(C,H,W,3)
-    C,H,W,S = img.shape
-    _, radii = partition_kspace(dataset,img,kcoords, show, no_steps, no_parts)
-    dist_to_center = torch.sqrt(kcoords[...,1]**2 + kcoords[...,2]**2)
-    pseudo_label = torch.zeros((C, H, W, no_parts))
-    for i in range(len(radii) - 1):
-        r_0 = radii[i]
-        r_1 = radii[i+1]
-        ind = torch.where((dist_to_center >= r_0) & (dist_to_center <= r_1)) 
-        ind = ind + tuple([torch.zeros(ind[0].shape).int() + i])
-        pseudo_label[ind] = 1
-    pseudo_label = pseudo_label.reshape((C*H*W, no_parts))
-    return pseudo_label, radii
-    
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='src/config/local/config_siren_kspace_loe.yaml', help='Path to the config file.')
@@ -145,4 +159,4 @@ if __name__ == "__main__":
     C,H,W,S = dataset.shape
     img = dataset.image.reshape(C,H,W,S)
     coords = dataset.coords.reshape(C,H,W,3)
-    lab, _ = partition_pseudo_label(img=img,kcoords=coords, show=True)
+    lab, _ = partition_and_stats(img=img,kcoords=coords, show=True)

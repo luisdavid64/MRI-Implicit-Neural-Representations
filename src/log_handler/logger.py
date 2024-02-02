@@ -1,3 +1,8 @@
+"""
+
+A class to handle important scalars during training
+
+"""
 import torch.utils.tensorboard as tensorboardX
 
 class INRLogger():
