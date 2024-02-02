@@ -21,12 +21,12 @@ def partition_kspace(dataset = None, img=None, kcoords=None, show = True, no_ste
     Partitions the k-space data into N rings
 
     Args:
-        dataset: Extract k-space and coord system from an MRIDataset object
-        img: Used to provide k-space data directly 
-        kcoords: Used to provide k-space data directly 
-        show: Show clustering 
-        no_steps: Number of initial rings
-        no_parts: Final number of partitions after k-means clustering
+    - dataset: Extract k-space and coord system from an MRIDataset object
+    - img: Used to provide k-space data directly 
+    - kcoords: Used to provide k-space data directly 
+    - show: Show clustering 
+    - no_steps: Number of initial rings
+    - no_parts: Final number of partitions after k-means clustering
 
     Returns:
         Tuple: (labels in shape of image, radii separating the partitions)
@@ -96,13 +96,13 @@ def partition_and_stats(dataset = None, img=None, kcoords=None, show = True, no_
     Partitions the k-space data into N rings and return a summary statistic
 
     Args:
-        dataset: Extract k-space and coord system from an MRIDataset object
-        img: Used to provide k-space data directly 
-        kcoords: Used to provide k-space data directly 
-        show: Show clustering 
-        no_steps: Number of initial rings
-        no_parts: Final number of partitions after k-means clustering
-        stat: [max,min] summary statistic to return
+    - dataset: Extract k-space and coord system from an MRIDataset object
+    - img: Used to provide k-space data directly 
+    - kcoords: Used to provide k-space data directly 
+    - show: Show clustering 
+    - no_steps: Number of initial rings
+    - no_parts: Final number of partitions after k-means clustering
+    - stat: [max,min] summary statistic to return
 
     Returns:
         Tuple: (summary statistic per radii, radii separating the partitions)

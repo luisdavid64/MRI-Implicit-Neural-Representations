@@ -1,9 +1,11 @@
 import torch
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 import fastmri
-from torch.nn import MarginRankingLoss
 
 class RadialL2Loss(torch.nn.Module):
+    """
+    Outdated Loss function
+    """
     def __init__(self, eps=1e-9):
         super(RadialL2Loss, self).__init__()
         self.eps = eps
@@ -14,13 +16,14 @@ class RadialL2Loss(torch.nn.Module):
         return loss
 
 class MSLELoss(torch.nn.Module):
+    """
+    An MSE Loss with values squeezed with a log function
+    """
     def __init__(self, eps=1e-9):
         super(MSLELoss, self).__init__()
         self.eps = eps
     def forward(self, x, y):
         loss = torch.nn.functional.mse_loss(torch.log(x+1+self.eps),torch.log(y+1 +self.eps))
-        # Magnitude loss
-        # loss += 0.1 * torch.nn.functional.mse_loss(fastmri.complex_abs(x), fastmri.complex_abs(y))
         return loss
 
 
@@ -116,6 +119,9 @@ class FocalFrequencyLoss(torch.nn.Module):
         return self.loss_formulation(pred, target, matrix) * self.loss_weight
 
 class TanhL2Loss(torch.nn.Module):
+    """
+    An L2 Loss with values squeezed with a tanh function
+    """
     def __init__(self, with_mag=False, rho=0.5):
         super(TanhL2Loss, self).__init__()
         self.with_mag = with_mag
@@ -197,7 +203,7 @@ class CenterLoss(torch.nn.Module):
         
 class LogSpaceLoss(torch.nn.Module):
     """
-    HDR loss function with frequency filtering (v4)
+    This loss function is a simplified HDR loss
     """
     def __init__(self, config):
         super().__init__()
@@ -206,9 +212,6 @@ class LogSpaceLoss(torch.nn.Module):
         self.factor = float(config['hdr_ff_factor'])
 
     def forward(self, input, target):
-        input = input.cpu()
-        target = target.cpu()
-            
         if input.dtype == torch.float:
             input = torch.view_as_complex(input) #* filter_value
         if target.dtype == torch.float:
@@ -287,10 +290,28 @@ class AdaptiveHDRLoss(torch.nn.Module):
             return loss.mean()
 
 class ConsistencyLoss(torch.nn.Module):
+    """
+
+    This loss function is to be used with overlapping regions
+    To supervise on shared points of the regions.
+    Args:
+        bounds: list of boundaries of circles centered at origin.
+
+    """
     def __init__(self, bounds):
         super().__init__()
         self.bounds = bounds
 
+    """
+
+    Args:
+    - input: prediction of the network/networks
+    - dist: coordinate distances of the prediction from the center. 
+
+    Returns:
+    - loss: PyTorch Variable holding a scalar giving the 'consistency' loss
+        
+    """
     def forward(self, input, dist):
         loss = 0
         for i in range(len(self.bounds)-1):
