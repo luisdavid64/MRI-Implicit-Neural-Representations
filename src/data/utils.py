@@ -112,6 +112,9 @@ def create_coords(c, h, w):
     return grid
 
 def display_tensor_stats(tensor, with_plot=False):
+    """
+        This method pretty prints some statistics about a tensor
+    """
     if with_plot:
         plt.boxplot(torch.view_as_complex(tensor).abs().reshape(-1), vert=False)  # vert=False makes it a horizontal boxplot
         plt.title('Plot of K-space')
