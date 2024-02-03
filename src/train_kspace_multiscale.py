@@ -21,7 +21,6 @@ import torch.backends.cudnn as cudnn
 import fastmri
 from datetime import datetime
 from tqdm import tqdm
-import torch.utils.tensorboard as tensorboardX
 from models.networks import Positional_Encoder
 from models.mfn import MultiscaleBoundedFourier, MultiscaleKFourier
 from models.utils import get_config, prepare_sub_folder, get_data_loader, psnr, ssim, get_device, save_im, \

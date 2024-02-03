@@ -27,7 +27,6 @@ class MRIDataset(Dataset):
                  centercrop=True,
                  normalization="max"
                  ):
-        # self.batch_size = batch_size
         self.challenge = challenge
         self.transform = transform
         self.data_class = data_class  # brain or knee
@@ -46,6 +45,8 @@ class MRIDataset(Dataset):
         # Choose a slice
         data = data[slice]
         data = T.to_tensor(data)
+
+        # Transform in our context means apply FFT
         if self.transform:
             data = self.__perform_fft(data)
             if centercrop:
@@ -63,8 +64,6 @@ class MRIDataset(Dataset):
         display_tensor_stats(data, with_plot=False)
         self.shape = data.shape # (Coil Dim, Height, Width)
         C,H,W,S = self.shape
-        # Flatten image and grid
-        # What to do with complex numbers?
         if per_coil_stats:
             stats_coil = []
             for i in range(C):
@@ -81,6 +80,7 @@ class MRIDataset(Dataset):
                                                                                    sample, slice)
             print("{}\n{}".format(title,table))
 
+        # Flatten image and grid
         self.flatten_image_and_create_coords(data)
 
     

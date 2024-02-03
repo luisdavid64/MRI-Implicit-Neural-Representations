@@ -94,15 +94,11 @@ def normalize_image(data, full_norm=False):
     # norm = torch.abs(data_flat).max()
     norm = fastmri.complex_abs(data).max()
     return data/norm 
-    
-def create_grid_3d(c, h, w):
-    grid_z, grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=c), \
-                                            torch.linspace(0, 1, steps=h), \
-                                            torch.linspace(0, 1, steps=w)])
-    grid = torch.stack([grid_z, grid_y, grid_x], dim=-1)
-    return grid
 
 def create_coords(c, h, w):
+    """
+        Created coordinate system with coil dimension
+    """
     Z, Y, X = torch.meshgrid(torch.linspace(-1, 1, c),
                               torch.linspace(-1, 1, h),
                               torch.linspace(-1, 1, w))
@@ -113,7 +109,7 @@ def create_coords(c, h, w):
 
 def display_tensor_stats(tensor, with_plot=False):
     """
-        This method pretty prints some statistics about a tensor
+        This method pretty prints some statistics about an MRI image
     """
     if with_plot:
         plt.boxplot(torch.view_as_complex(tensor).abs().reshape(-1), vert=False)  # vert=False makes it a horizontal boxplot

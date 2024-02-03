@@ -1,3 +1,9 @@
+"""
+
+Training Script
+
+"""
+
 import os
 import argparse
 import shutil
@@ -7,7 +13,6 @@ import torch.backends.cudnn as cudnn
 import fastmri
 from datetime import datetime
 from tqdm import tqdm
-import torch.utils.tensorboard as tensorboardX
 from models.networks import WIRE, Positional_Encoder, FFN, SIREN
 from models.mfn import GaborNet, FourierNet, KGaborNet
 from models.wire2d  import WIRE2D
