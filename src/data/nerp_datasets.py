@@ -12,7 +12,21 @@ from .utils import *
 
 class MRIDataset(Dataset):
     """
-        Dataset for INR from a fastmri sample.
+    Dataset for INR from a fastmri sample.
+    
+    Args:
+    - data_class: [brain, knee] which type of sample to use
+    - data_root: path to dataset
+    - challenge: currently multicoil only
+    - set: train or test set of FastMRI challenge
+    - transform: if true, get MRI image, else return kspace
+    - sample: sample no to retrieve
+    - slice: slice no to retrieve
+    - custom_file_or_path: alternative retrieval with direct path to a file
+    - per_coil_stats: prints stats of MRI image per-coil
+    - centercrop: whether to perform a center crop
+    - normalization: type of normalization to use
+
     """
     def __init__(self, 
                  data_class='brain', 
