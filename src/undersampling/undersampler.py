@@ -10,6 +10,12 @@ import matplotlib.pyplot as plt
 # Define the supported methods
 SUPORTED_UNDERSAMPLING_METHODS = ["grid", "random_line", "radial"]
 class Undersampler():
+    """
+
+    This class generated undersampling masks for undersampled MRI reconstruction.
+    Right now we support the methods above.
+
+    """
     
     def __init__(self, undersamping_method : str) -> None:
         # Check if the supported method is provided

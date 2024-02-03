@@ -254,10 +254,15 @@ class MRIDatasetUndersampling(MRIDataset):
 
     
     def parse_undersampling_argument(self, arg : str) -> Tuple[str, list]:
-        # This method will get argument and parse it and being put as list
-        # Argument should be in "function-params" type
-        # Example "grid-3*3", "grid-5*3" etc
-        # Example "random_line-0.5"
+        """
+        This method takes an argument in the 'function-params' type format and parses it to set a list.
+    
+        Args:
+            argument (str): The input argument in the format 'function-params', e.g., "grid-3*3", "radial-2", "random_line-0.5".
+    
+        Returns:
+            list: A parsed list based on the input argument.
+        """
         
         param_parsed = list()
         # But it also supports none
@@ -331,9 +336,9 @@ class MRIDatasetUndersampling(MRIDataset):
     def __len__(self):
         return len(self.coords)
     
-    # Here we need to override it __getitem__
-    # This will return 
-        # cordinates normal, image, cordinate mask occording to undersampeld or not
+    # Here we need to override __getitem__
+    # This returns: 
+        # cordinates, image, cordinate mask occording to undersampling
     def __getitem__(self, idx):
         
         return self.coords[idx], self.image[idx], list(), self.coords_mask[idx]
