@@ -94,8 +94,10 @@ Here we provide an example on how to set up the undersampling param
 undersampling: grid-2*1
 
 ```
-Note: In order to use line sampling, we have not implemented seperate implementation but it uses our grid sampling code so
+Note: Line sampling has not been implemented separately; instead, it utilizes our grid sampling code. So:
+
 For Column sampling use grid-n*1  where n is the accelartion in column axis
+
 For Row sampling use grid-1*n     where n is the accelartion in row axis
 
 ## Special Batching For Undersampling:
