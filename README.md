@@ -147,6 +147,10 @@ To perform the search use the following command:
 ```
 python src/hp_search_script.py --config path/to/config --hp_config path/to/hp_config
 ```
+# Unit Tests
+Moreover, we have also added some series of unit testes to make sure that implemented classeses are working as it should. These tests can be found under src/test folder. Dataloader, regularization and undersampler implementations have unit tests.
+
+Note: Dataloader's unit test requires data (.h5) file to work. Please download that file then modify the unit test accordingly.
 
 # References 
 
