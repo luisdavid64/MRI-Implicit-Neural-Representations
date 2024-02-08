@@ -1,13 +1,20 @@
 import random
 from math import log10
 from itertools import product
+from src.parameter_search.hp_model_training import hp_training_function
 
+"""
+The file that implements Random and Grid hyperparameter search methods 
+"""
 
+# hyperparameter type
 ALLOWED_RANDOM_SEARCH_PARAMS = ['log', 'int', 'float', 'item']
 
 
 def update_model_config(model_configs, hp_configs):
-
+    """
+    Updating the model's config from the search configs.
+    """
     for k, v in hp_configs.items():
         k_split = k.split(".")
         if '.' in k:
@@ -18,7 +25,7 @@ def update_model_config(model_configs, hp_configs):
     return model_configs
 
 
-def findBestConfig(train_loader, val_loader, model_configs, hp_configs, epochs, image, train_function, device):
+def findBestConfig(model_configs, hp_configs, epochs, device):
     """
     Get a list of hyperparameter configs for random search or grid search,
     trains a model on all configs and returns the one performing best
@@ -29,8 +36,6 @@ def findBestConfig(train_loader, val_loader, model_configs, hp_configs, epochs, 
     best_config_psnr = None
     best_ssim = -1
     best_config_ssim = None
-    # best_model_psnr = None
-    # best_model_ssim = None
     results = []
 
     image_directory = model_configs.pop("image_directory")
@@ -40,30 +45,45 @@ def findBestConfig(train_loader, val_loader, model_configs, hp_configs, epochs, 
         print("\nEvaluating Config #{} [of {}]:\n".format(
             (i + 1), len(hp_configs)), hp_configs[i])
 
-        # model = model_class(**model_configs[i])
-
         # best_model_stats = train_function(model, train_loader, val_loader, **model_configs[i])
         model_configs = update_model_config(model_configs, hp_configs[i])
         model_configs["config_index"] = i+1
-        model_class = model_configs["model"]
-        # best_model_stats = {}
-        # model = None
 
         import os, yaml
         with open(os.path.join(output_directory, "hp_search_config_{}.yaml".format(i+1)), "w") as hp_con:
             yaml.dump(hp_configs[i], hp_con, default_flow_style=False)
 
-        model, best_model_stats = train_function(model_configs=model_configs, model_name=model_class, max_epoch=epochs,
-                                                 image_directory=image_directory, device=device)
-        results.append(best_model_stats)
+        from src.models.utils import get_data_loader
+        dataset, data_loader, val_loader = get_data_loader(
+            data=model_configs['data'],
+            data_root=model_configs['data_root'],
+            set=model_configs['set'],
+            batch_size=model_configs['batch_size'],
+            transform=model_configs['transform'],
+            num_workers=0,
+            sample=model_configs["sample"],
+            slice=model_configs["slice"],
+            shuffle=True,
+            full_norm=model_configs["full_norm"],
+            normalization=model_configs["normalization"],
+            undersampling=model_configs["undersampling"],
+            use_dists="no",
+            per_coil=model_configs["per_coil"]
+        )
+
+        best_model_stats = hp_training_function(config=model_configs, max_epoch=epochs, image_directory=image_directory,
+                                                device=device,
+                                                dataset=dataset, data_loader=data_loader, val_loader=val_loader)
 
         # Best PSNR
         if best_model_stats["best_psnr"] > best_psnr:
-            best_psnr, best_model_psnr, best_config_psnr = best_model_stats["best_psnr"], model, model_configs
+            best_psnr, best_config_psnr = best_model_stats["best_psnr"], model_configs
+            # best_model_psnr
 
         # Best SSIM
         if best_model_stats["best_ssim"] > best_ssim:
-            best_ssim, best_model_ssim, best_config_ssim = best_model_stats["best_ssim"], model, model_configs
+            best_ssim, best_config_ssim = best_model_stats["best_ssim"], model_configs
+            # best_model_ssim
 
     print("\nSearch done. Best Psnr = {}".format(best_psnr))
     print("Best Config PSNR:", best_config_psnr)
@@ -75,8 +95,8 @@ def findBestConfig(train_loader, val_loader, model_configs, hp_configs, epochs, 
             "results": list(zip(hp_configs, results))}
 
 
-def grid_search(train_function, model_class, model_configs, device, image=None, train_loader=None, val_loader=None,
-                epochs=20, grid_search_spaces = {
+def grid_search(model_class, model_configs, device, dataset=None, image=None, train_loader=None,
+                val_loader=None, epochs=20, grid_search_spaces = {
                     "learning_rate": [0.0001, 0.001, 0.01, 0.1],
                     "reg": [1e-4, 1e-5, 1e-6]
                 }):
@@ -106,6 +126,7 @@ def grid_search(train_function, model_class, model_configs, device, image=None, 
     """
     configs = []
 
+    print("Running Grid Search method on model: ", model_class)
     # converting search space into the format below
     # {
     #     "learning_rate": [0.0001, 0.001, 0.01, 0.1],
@@ -126,16 +147,10 @@ def grid_search(train_function, model_class, model_configs, device, image=None, 
     for instance in product(*grid_search_spaces.values()):
         configs.append(dict(zip(grid_search_spaces.keys(), instance)))
 
-
-    return findBestConfig(train_loader=train_loader, val_loader=val_loader, model_configs=model_configs,
-                          hp_configs=configs, epochs=epochs, image=image, train_function=train_function, device=device)
+    return findBestConfig(model_configs=model_configs, hp_configs=configs, epochs=epochs, device=device)
 
 
-
-
-
-def random_search(train_function, model_class, model_configs, device, image=None, train_loader=None, val_loader=None,
-                  num_search=20, epochs=20, random_search_spaces = {
+def random_search(model_class, model_configs, device, num_search=20, epochs=20, random_search_spaces = {
                       "learning_rate": ([0.0001, 0.1], 'log'),
                       "hidden_size": ([100, 400], "int"),
                       #"activation": ([Sigmoid(), Relu()], "item"),
@@ -153,6 +168,7 @@ def random_search(train_function, model_class, model_configs, device, image=None
         - num_search: number of times we sample in each int/float/log list
     """
     configs = []
+    print("Running Random Search method on model: ", model_class)
     # converting search space in the format below
     # random_search_spaces = {
     #     "learning_rate": ([0.0001, 0.1], 'log'),
@@ -165,8 +181,7 @@ def random_search(train_function, model_class, model_configs, device, image=None
     for _ in range(num_search):
         configs.append(random_search_spaces_to_config(random_search_spaces))
 
-    return findBestConfig(train_loader=train_loader, val_loader=val_loader, model_configs=model_configs,
-                          hp_configs=configs, epochs=epochs, image=image, train_function=train_function, device=device)
+    return findBestConfig(model_configs=model_configs, hp_configs=configs, epochs=epochs, device=device)
 
 
 def random_search_spaces_to_config(random_search_spaces):
