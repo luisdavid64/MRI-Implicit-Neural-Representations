@@ -1,5 +1,18 @@
 # Learning Neural Implicit Representations of MRI Data
 
+
+
+<div style="width: 100%; display: inline-flex; justify-content: space-around">
+  <div style="display: flex; flex-direction: column; align-items: center">
+    <img width=200 height=200 src="assets/wire_image_recon.gif"/>
+    <p style="margin-top:10px; text-align: center">Wire image <br> brain reconstruction</p>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center">
+    <img width=200 height=200 src="assets/kfourier_kspace_recon.gif"/>
+    <p style="margin-top:10px; text-align:center">Multi-scale k-space <br> knee reconstruction</p>
+  </div>
+</div>
+
 # Introduction
 
 This is the repository for the project "Learning Neural Implicit Representations of MRI Data" of the ADLM Praktikum, supervised by Wenqi Huang and Robert Graf. Within this repository, our objective is to delve into and compare the most recent advancements in Implicit Neural Representations (INRs) for accurately modeling MRI data. The primary goal is to assess and compare the effectiveness of various methods for processing MRI data, both in image space and k-space. Our particular focus is on multi-coil data. 
