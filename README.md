@@ -46,8 +46,6 @@ To run the experiments with multiple samples use the data samples config files:
 python src/train_kspace_multiscale.py --config path/to/config --data_samples path/to/data_samples
 ```
 
-Note that the clustering setup must be included in the config as in [this file](./src/config/local/config_fourier_multiscale.yaml)
-
 # Config Parameters
 
 The configuration file is the main entry point to modify the behavior of the INR during training.
