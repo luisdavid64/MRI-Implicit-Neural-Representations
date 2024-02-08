@@ -39,7 +39,7 @@ class TestAddFunction(unittest.TestCase):
         result = l1_regularizer(model.parameters())
         
         # Assert that the result is close to the expected result
-        self.assertTrue(torch.allclose(result, expected_result))
+        self.assertEqual(result, expected_result)
         pass
 
     def test_L2(self):
@@ -56,7 +56,7 @@ class TestAddFunction(unittest.TestCase):
         result = l2_regularizer(model.parameters())
         
         # Assert that the result is close to the expected result
-        self.assertTrue(torch.allclose(result, expected_result))
+        self.assertEqual(result, expected_result)
         pass
 
 if __name__ == '__main__':
