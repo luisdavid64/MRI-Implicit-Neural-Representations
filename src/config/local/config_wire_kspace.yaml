@@ -48,7 +48,7 @@ sample: 0
 transform: False      # Set to false for k-space
 full_norm: True       # If normalize fully to [0,1]
 
-# Undersampling paramters
+# Undersampling parameters
 # Supported formats:
 #   grid-x*y          example: grid-3*3
 #   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
