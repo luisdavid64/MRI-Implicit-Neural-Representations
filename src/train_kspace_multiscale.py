@@ -171,10 +171,10 @@ def training_multiscale(config, dataset, data_loader, val_loader, sample, slice_
             optim.zero_grad()
             train_loss = 0
             if config["use_tv"]:
-                mask_coords.to(device=device)
+                mask_coords = mask_coords.to(device=device)
                 train_loss += tv_loss(train_output[-1].view((H,W,2)))
             if len(mask_coords) != 0:
-                mask_coords.to(device=device)
+                mask_coords = mask_coords.to(device=device)
                 gt = gt[mask_coords[:,0]]
             train_loss += 0.1 * loss_cons(train_output, dist_to_center)
             for idx, out in enumerate(train_output):
