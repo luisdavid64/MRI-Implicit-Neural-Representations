@@ -1,19 +1,25 @@
 # Logger options
-log_iter: 50                # How often to log the training loss 
-val_epoch: 2               # How often to validate testing and save output images during training
-image_save_epoch: 5        # How often do you want to save output images during training
+log_iter: 100                # How often to log the training loss 
+val_epoch: 100               # How often to validate testing and save output images during training
+image_save_epoch: 100        # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
-max_epoch: 500                # Maximum number of training iterations
-batch_size: 1000               # Batch size (320x320)
+max_epoch: 700                # Maximum number of training iterations
+batch_size: 30000               # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
-weight_decay: 0.0             # Weight decay
+weight_decay: 0.0000001             # Weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
-lr: 0.0005                    # Initial learning rate
+lr: 0.00005                    # Initial learning rate
  # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
+
+# Regularization
+# Supported L1 (Lasso), L2 (Ridge) or none
+regularization:
+  type: none # L1, L2 or None
+  strenght : 0.001 # lambda value
 
 ################## 3D CT Image ###################
 # Model options (3D CT)
@@ -34,11 +40,23 @@ encoder:
   embedding_size: 256         # Embedding size for input Fourier feature encoding
   coordinates_size: 3
 
+
 # Data
 data: brain # or knee
 data_root: /local_ssd/practical_wise24/implicit_neural_representations
 set: train
-slice: 0
+slice: 18
 sample: 0
 transform: True      # Set to false for k-space
 full_norm: True       # If normalize fully to [0,1]
+normalization: max
+
+# Undersamping paramters
+# Supported formats:
+#   grid-x*y          example: grid-3*3
+#   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
+#   radial-n          example: radial-2
+#   none              So no undersamping
+undersampling: none
+use_tv: False
+per_coil: False
