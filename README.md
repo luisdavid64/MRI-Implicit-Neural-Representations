@@ -11,7 +11,7 @@ We use [FastMRI's multi coil dataset](https://fastmri.org/) for our experiments.
 # Requirements
 
 ```
-    conde create --name inr
+    conda create --name inr
     conda activate inr
     pip install -r requirements.txt
 ```
