@@ -1,6 +1,6 @@
 # Learning Neural Implicit Representations of MRI Data
 
-<table align="center"><tr>
+<table style="width: 100%" align="center"><tr>
 <td> 
   <img src="assets/wire_image_recon.gif" alt="Wire image brain reconstruction" width="200" height="200"/> 
 </td>
