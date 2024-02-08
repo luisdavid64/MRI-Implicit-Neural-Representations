@@ -1,17 +1,15 @@
 # Learning Neural Implicit Representations of MRI Data
 
-
-
-<div style="width: 100%; display: inline-flex; justify-content: space-around">
-  <div style="display: flex; flex-direction: column; align-items: center">
-    <img width=200 height=200 src="assets/wire_image_recon.gif"/>
-    <p style="margin-top:10px; text-align: center">Wire image <br> brain reconstruction</p>
-  </div>
-  <div style="display: flex; flex-direction: column; align-items: center">
-    <img width=200 height=200 src="assets/kfourier_kspace_recon.gif"/>
-    <p style="margin-top:10px; text-align:center">Multi-scale k-space <br> knee reconstruction</p>
-  </div>
-</div>
+<center>
+<table><tr>
+<td> 
+  <img src="assets/wire_image_recon.gif" alt="Wire image brain reconstruction" width="200" height="200"/> 
+</td>
+<td>  
+  <img src="assets/kfourier_kspace_recon.gif" alt="Multi-scale k-space knee reconstruction" width="200" height="200"/> 
+</td>
+</tr></table>
+</center>
 
 # Introduction
 
