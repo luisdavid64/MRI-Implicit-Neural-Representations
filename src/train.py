@@ -172,7 +172,7 @@ def training_script(config, dataset, data_loader, val_loader, sample, slice_no):
             if len(mask_coords) != 0:
                 if config["use_tv"]:
                     train_loss += tv_loss(train_output.view((H,W,2)))
-                mask_coords.to(device=device)
+                mask_coords = mask_coords.to(device=device)
                 train_output = train_output[mask_coords[:,0]]
                 gt = gt[mask_coords[:,0]]
             if config["loss"] in ["HDR", "LSL", "FFL", "tanh"]:
