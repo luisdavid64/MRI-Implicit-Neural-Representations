@@ -106,6 +106,48 @@ To set the dataloader to load batches per coil, please set the parameter `per_co
 
 If per coil batching is used, one can also set `use_tv` to calculate the total variation loss on the coil to enforce spatial smoothness as in [5].
 
+## Hyperparameter Search
+
+To perform a hyperparameter search, one can use two methods - **Grid Search** and **Random Search**. To use a method use a sample for model WIRE as below:
+
+```json
+{
+  "method": "random",
+  "num_search": 2,
+  "search_space": {
+    "batch_size":{
+      "values": [10000, 25000],
+      "type": "int"
+    },
+    "lr": {
+      "values": [0.00001, 0.00003],
+      "type": "log"
+    },
+    "net.network_depth": {
+      "values": [2, 4],
+      "type": "int"
+    },
+    "net.scale": {
+      "values": [10, 20],
+      "type": "int"
+    },
+    "normalization": {
+      "values": ["coil", "gaussian_blur", "max_std", "max"],
+      "type": "item"
+    }
+  }
+}
+
+```
+
+The hyperparameters must be added in the key `search_space` and each hyperparameter must have a type belonging to `['log', 'int', 'float', 'item']`.
+A nested hyperparameter like `scale` should be appended after a '.' with it's parent key, like `net.scale`.
+
+To perform the search use the following command: 
+```
+python src/hp_search_script.py --config path/to/config --hp_config path/to/hp_config
+```
+
 # References 
 
 [1] Huang, W., Li, H., Cruz, G., Pan, J., Rueckert, D., & Hammernik, K. (2022). Neural Implicit k-Space for Binning-free Non-Cartesian Cardiac MR Imaging. Information Processing in Medical Imaging.
