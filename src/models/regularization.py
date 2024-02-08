@@ -6,8 +6,6 @@ class Regularization_L1_NOTWORKING:
     
     def __call__(self, model_parameters: torch.Generator) -> float:
 
-        # let's use torch.linalg.norm instead of torch.sum(torch.abs(param))
-        # It is faster
         lasso_reg = torch.linalg.norm(torch.nn.utils.parameters_to_vector(model_parameters), 1)
         return lasso_reg * self.reg_strength
 
@@ -26,9 +24,7 @@ class Regularization_L1:
     
     def __call__(self, model_parameters: torch.Generator) -> float:
 
-        # let's use torch.linalg.norm instead of torch.sum(torch.abs(param))
-        # It is faster
-        lasso_reg = sum(torch.linalg.norm(p, 1) for p in model_parameters)
+        lasso_reg = sum(torch.sum(torch.abs(p)) for p in model_parameters)
         return lasso_reg * self.reg_strength
 
 class Regularization_L2:

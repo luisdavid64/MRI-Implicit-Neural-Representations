@@ -11,12 +11,10 @@ sys.path.append(str(working_path))
 import unittest
 import os
 from data.nerp_datasets import MRIDataset, MRIDatasetUndersampling, MRIDatasetWithDistances
-
+path = "data/knee_multicoil_train/file1000801.h5"
 class TestAddFunction(unittest.TestCase):
 
     def test_MRIDataset(self):
-        
-        path = "data/knee_multicoil_train/file1000801.h5"
         
         # Before the start of the test, make sure that file exsist
         assert os.path.exists(path), f"File is not exsist {path}"
@@ -33,8 +31,7 @@ class TestAddFunction(unittest.TestCase):
         pass
 
     def test_MRIDatasetUndersampling_even_row_sampling(self):
-        path = "data/knee_multicoil_train/file1000801.h5"
-        
+
         # Before the start of the test, make sure that file exsist
         assert os.path.exists(path), f"File is not exsist {path}"
 
@@ -47,8 +44,7 @@ class TestAddFunction(unittest.TestCase):
         self.assertEqual(len(dataset) , len(dataset_undersampled))
     
     def test_MRIDatasetUndersampling_nonetest(self):
-        path = "data/knee_multicoil_train/file1000801.h5"
-        
+
         # Before the start of the test, make sure that file exsist
         assert os.path.exists(path), f"File is not exsist {path}"
 
@@ -61,8 +57,7 @@ class TestAddFunction(unittest.TestCase):
         self.assertEqual(len(dataset) , len(dataset_undersampled))
     
     def test_MRIDatasetWithDistances(self):
-        path = "data/knee_multicoil_train/file1000801.h5"
-        
+
         # Before the start of the test, make sure that file exsist
         assert os.path.exists(path), f"File is not exsist {path}"
 

@@ -1,12 +1,12 @@
 # Logger options
-log_iter: 2                   # How often to log the training loss 
-val_epoch: 5                  # How often to validate testing and save output images during training
-image_save_epoch: 20          # How often do you want to save output images during training
+log_iter: 100                   # How often to log the training loss 
+val_epoch: 50                  # How often to validate testing and save output images during training
+image_save_epoch: 50          # How often do you want to save output images during training
 display_image_num: 8
 
 # Optimization options
-max_epoch: 500               # Maximum number of training iterations
-batch_size: 80000            # Batch size (320x320)
+max_epoch: 700               # Maximum number of training iterations
+batch_size: 300000            # Batch size (320x320)
 loss: L2
 optimizer: Adam               # Optimizer for trainings
 weight_decay: 0.0             # Weight decay
@@ -46,9 +46,12 @@ transform: True      # Set to false for k-space
 full_norm: True       # If normalize fully to [0,1]
 normalization: none
 
-# Undersamping paramters
+# Undersampling parameters
 # Supported formats:
 #   grid-x*y          example: grid-3*3
 #   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
-#   none              So no undersamping
-undersampling: grid-2*1
+#   radial-n          example: radial-2
+#   none              So no undersampling
+undersampling: none
+use_tv: False
+per_coil: False

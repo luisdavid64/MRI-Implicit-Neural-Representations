@@ -70,9 +70,10 @@ transform: False      # Set to false for k-space
 full_norm: False       # If normalize fully to [0,1]
 normalization: max
 
-# Undersamping paramters
+# Undersampling parameters
 # Supported formats:
 #   grid-x*y          example: grid-3*3
 #   random_line-p     example: random_line-0.5   (note: p should be in [0,1] range)
-#   none              So no undersamping
-undersampling: uniform_random-0.5
+#   radial-n          example: radial-2
+#   none              So no undersampling
+undersampling: none
